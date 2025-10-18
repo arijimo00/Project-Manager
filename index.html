@@ -1,0 +1,1260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project Management Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background-color: #f5f5f7;
+            color: #333;
+        }
+
+        .app-container {
+            display: flex;
+            height: 100vh;
+        }
+
+        /* Sidebar Styles */
+        .sidebar {
+            width: 250px;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+        }
+
+        .user-section {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 20px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            margin-bottom: 30px;
+            position: relative;
+        }
+
+        .user-icon {
+            width: 45px;
+            height: 45px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            color: white;
+            cursor: pointer;
+            transition: transform 0.3s;
+        }
+
+        .user-icon:hover {
+            transform: scale(1.1);
+        }
+
+        .user-dropdown {
+            position: absolute;
+            top: 70px;
+            left: 0;
+            right: 0;
+            background: #2a2a3e;
+            border-radius: 8px;
+            padding: 10px;
+            display: none;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+            z-index: 1000;
+        }
+
+        .user-dropdown.active {
+            display: block;
+        }
+
+        .dropdown-item {
+            padding: 10px 15px;
+            cursor: pointer;
+            border-radius: 5px;
+            color: white;
+            transition: background 0.3s;
+        }
+
+        .dropdown-item:hover {
+            background: rgba(255,255,255,0.1);
+        }
+
+        .nav-tabs {
+            flex: 1;
+        }
+
+        .tab-item {
+            padding: 15px 20px;
+            margin-bottom: 10px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 10px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .tab-item:hover {
+            background: rgba(255,255,255,0.1);
+            transform: translateX(5px);
+        }
+
+        .tab-item.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        /* Main Content Area */
+        .main-content {
+            flex: 1;
+            padding: 30px;
+            overflow-y: auto;
+        }
+
+        .content-header {
+            margin-bottom: 30px;
+            animation: slideDown 0.5s ease;
+        }
+
+        .content-header h1 {
+            font-size: 32px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+        }
+
+        /* Form Styles */
+        .form-section {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.05);
+            animation: fadeIn 0.6s ease;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .form-group label {
+            font-weight: 600;
+            color: #1a1a2e;
+            font-size: 14px;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s;
+            background: #f8f9fa;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .multi-select {
+            min-height: 100px;
+        }
+
+        /* Account Cards */
+        .account-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 25px;
+            animation: fadeIn 0.6s ease;
+        }
+
+        .account-card {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.05);
+            transition: all 0.3s;
+            border: 2px solid transparent;
+        }
+
+        .account-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            border-color: #667eea;
+        }
+
+        .account-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .account-name {
+            font-size: 20px;
+            font-weight: 600;
+            color: #1a1a2e;
+        }
+
+        .stakeholder-list {
+            margin-top: 15px;
+        }
+
+        .stakeholder-item {
+            padding: 12px 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s;
+        }
+
+        .stakeholder-item:hover {
+            background: #e9ecef;
+            transform: translateX(5px);
+        }
+
+        /* Resource Cards */
+        .resource-card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+            margin-bottom: 15px;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 2px solid transparent;
+        }
+
+        .resource-card:hover {
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+            border-color: #667eea;
+        }
+
+        .resource-card.expanded {
+            background: linear-gradient(to right, #f8f9fa, white);
+        }
+
+        .resource-details {
+            display: none;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .resource-details.show {
+            display: block;
+            animation: slideDown 0.3s ease;
+        }
+
+        /* Gantt Chart Placeholder */
+        .gantt-container {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.05);
+            min-height: 500px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #666;
+            font-size: 18px;
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 14px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #e9ecef;
+            color: #495057;
+        }
+
+        .btn-secondary:hover {
+            background: #dee2e6;
+        }
+
+        /* Modal Styles */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            max-width: 500px;
+            width: 90%;
+            animation: modalSlide 0.3s ease;
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes modalSlide {
+            from {
+                transform: scale(0.8);
+                opacity: 0;
+            }
+            to {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        /* Status Badge */
+        .status-badge {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-received { background: #e3f2fd; color: #1976d2; }
+        .status-first-response { background: #f3e5f5; color: #7b1fa2; }
+        .status-in-pipeline { background: #fff3e0; color: #f57c00; }
+        .status-in-progress { background: #e8f5e9; color: #388e3c; }
+        .status-delivered { background: #e0f2f1; color: #00796b; }
+        .status-on-pause { background: #fce4ec; color: #c2185b; }
+
+        /* Login Screen */
+        .login-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .login-box {
+            background: white;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            width: 400px;
+            text-align: center;
+        }
+
+        .login-box h2 {
+            margin-bottom: 30px;
+            color: #1a1a2e;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .app-container {
+                flex-direction: column;
+            }
+            
+            .sidebar {
+                width: 100%;
+                height: auto;
+            }
+            
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Login Screen -->
+    <div id="loginScreen" class="login-container">
+        <div class="login-box">
+            <h2>Welcome to Project Manager</h2>
+            <div class="form-group" style="margin-bottom: 20px;">
+                <label>Username</label>
+                <input type="text" id="loginUsername" placeholder="Enter your username">
+            </div>
+            <div class="form-group" style="margin-bottom: 20px;">
+                <label>Firebase Database Key</label>
+                <input type="password" id="firebaseKey" placeholder="Enter your Firebase key">
+            </div>
+            <button class="btn btn-primary" onclick="login()" style="width: 100%; margin-top: 10px;">Login</button>
+            <p style="margin-top: 20px; color: #666;">New user? Enter your details to create an account</p>
+        </div>
+    </div>
+
+    <!-- Main App -->
+    <div id="mainApp" class="app-container" style="display: none;">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="user-section">
+                <div class="user-icon" onclick="toggleUserDropdown()">
+                    <span id="userInitial">U</span>
+                </div>
+                <div style="color: white;">
+                    <div id="currentUser" style="font-weight: 600;">User</div>
+                    <div style="font-size: 12px; opacity: 0.7;">Project Manager</div>
+                </div>
+                <div id="userDropdown" class="user-dropdown">
+                    <div class="dropdown-item" onclick="downloadUserDetails()">📥 Download User Details</div>
+                    <div class="dropdown-item" onclick="logout()">🚪 Logout</div>
+                </div>
+            </div>
+            
+            <div class="nav-tabs">
+                <div class="tab-item active" onclick="switchTab('dashboard')">
+                    📊 Dashboard Entry
+                </div>
+                <div class="tab-item" onclick="switchTab('accounts')">
+                    🏢 Account Dashboard
+                </div>
+                <div class="tab-item" onclick="switchTab('timeline')">
+                    📅 Timeline Dashboard
+                </div>
+                <div class="tab-item" onclick="switchTab('resources')">
+                    👥 Resources
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content Area -->
+        <div class="main-content">
+            <!-- Dashboard Entry Tab -->
+            <div id="dashboardTab" class="tab-content">
+                <div class="content-header">
+                    <h1>Dashboard Entry</h1>
+                    <p>Create and manage project deliverables</p>
+                </div>
+                
+                <div class="form-section">
+                    <form id="dashboardForm">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>Serial Number</label>
+                                <input type="text" id="serialNumber" placeholder="Auto-generated" readonly>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Account</label>
+                                <select id="account" onchange="updateStakeholders()">
+                                    <option value="">Select Account</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Primary Stakeholder</label>
+                                <select id="primaryStakeholder">
+                                    <option value="">Select Primary Stakeholder</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Secondary Stakeholders</label>
+                                <select id="secondaryStakeholders" class="multi-select" multiple>
+                                    <option value="">Select Secondary Stakeholders</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Account POC</label>
+                                <input type="text" id="accountPOC" readonly>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Project Name</label>
+                                <input type="text" id="projectName" placeholder="Enter project name">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Project Resources</label>
+                                <select id="projectResources" class="multi-select" multiple onchange="calculateTimeline()">
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Anticipated Bandwidth (days)</label>
+                                <input type="number" id="bandwidth" placeholder="Days required" onchange="calculateTimeline()">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Status</label>
+                                <select id="status">
+                                    <option value="received">Received</option>
+                                    <option value="first-response">First Response</option>
+                                    <option value="in-pipeline">In Pipeline</option>
+                                    <option value="in-progress">In Progress</option>
+                                    <option value="delivered">Delivered</option>
+                                    <option value="on-pause">On Pause</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Delivery Type</label>
+                                <select id="deliveryType" onchange="updateDeliveryFields()">
+                                    <option value="single">Single Delivery</option>
+                                    <option value="multi">Multi-phase Delivery</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Delivery Timeline</label>
+                                <input type="date" id="deliveryTimeline">
+                                <div id="suggestedTimeline" style="color: #667eea; font-size: 12px; margin-top: 5px;"></div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Draup CC SR No</label>
+                                <input type="text" id="draupCC" placeholder="Internal tracking number">
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Notes</label>
+                            <textarea id="notes" rows="3" placeholder="Additional notes..."></textarea>
+                        </div>
+                        
+                        <div style="display: flex; gap: 15px; margin-top: 25px;">
+                            <button type="submit" class="btn btn-primary">Save Entry</button>
+                            <button type="button" class="btn btn-secondary" onclick="clearForm()">Clear Form</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Account Dashboard Tab -->
+            <div id="accountsTab" class="tab-content" style="display: none;">
+                <div class="content-header">
+                    <h1>Account Dashboard</h1>
+                    <p>Manage accounts and stakeholders</p>
+                </div>
+                
+                <button class="btn btn-primary" onclick="showAddAccountModal()" style="margin-bottom: 25px;">
+                    + Add New Account
+                </button>
+                
+                <div id="accountsGrid" class="account-grid">
+                    <!-- Account cards will be dynamically generated here -->
+                </div>
+            </div>
+
+            <!-- Timeline Dashboard Tab -->
+            <div id="timelineTab" class="tab-content" style="display: none;">
+                <div class="content-header">
+                    <h1>Timeline Dashboard</h1>
+                    <p>View project timelines and resource allocation</p>
+                </div>
+                
+                <div class="gantt-container">
+                    <div>
+                        <h3>Gantt Chart Visualization</h3>
+                        <p>Interactive timeline view will be implemented here</p>
+                        <p style="font-size: 14px; color: #999; margin-top: 10px;">
+                            Features: Resource allocation, timeline conflicts, workload visualization
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Resources Tab -->
+            <div id="resourcesTab" class="tab-content" style="display: none;">
+                <div class="content-header">
+                    <h1>Resources</h1>
+                    <p>Manage team members and their efficiency levels</p>
+                </div>
+                
+                <button class="btn btn-primary" onclick="showAddResourceModal()" style="margin-bottom: 25px;">
+                    + Add New Resource
+                </button>
+                
+                <div id="resourcesList">
+                    <!-- Resource cards will be dynamically generated here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <div id="accountModal" class="modal">
+        <div class="modal-content">
+            <h3>Add New Account</h3>
+            <div class="form-group">
+                <label>Account Name</label>
+                <input type="text" id="modalAccountName">
+            </div>
+            <div style="display: flex; gap: 15px; margin-top: 20px;">
+                <button class="btn btn-primary" onclick="saveAccount()">Save Account</button>
+                <button class="btn btn-secondary" onclick="closeModal('accountModal')">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="resourceModal" class="modal">
+        <div class="modal-content">
+            <h3>Add New Resource</h3>
+            <div class="form-group">
+                <label>Resource Name</label>
+                <input type="text" id="modalResourceName">
+            </div>
+            <div class="form-group">
+                <label>Resource Title</label>
+                <input type="text" id="modalResourceTitle">
+            </div>
+            <div class="form-group">
+                <label>Efficiency Level (-2 to +3)</label>
+                <input type="number" id="modalResourceLevel" min="-2" max="3" value="0">
+            </div>
+            <div style="display: flex; gap: 15px; margin-top: 20px;">
+                <button class="btn btn-primary" onclick="saveResource()">Save Resource</button>
+                <button class="btn btn-secondary" onclick="closeModal('resourceModal')">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-database-compat.js"></script>
+
+    <script>
+        // Global Variables
+        let currentUser = null;
+        let firebaseConfig = null;
+        let database = null;
+        let accounts = {};
+        let resources = {};
+        let projects = {};
+
+        // Initialize the app
+        function initializeApp() {
+            const savedUser = localStorage.getItem('currentUser');
+            const savedConfig = localStorage.getItem('firebaseConfig');
+            
+            if (savedUser && savedConfig) {
+                currentUser = JSON.parse(savedUser);
+                firebaseConfig = JSON.parse(savedConfig);
+                initializeFirebase();
+                showMainApp();
+            } else {
+                document.getElementById('loginScreen').style.display = 'flex';
+            }
+        }
+
+        // Login function
+        function login() {
+            const username = document.getElementById('loginUsername').value;
+            const firebaseKey = document.getElementById('firebaseKey').value;
+            
+            if (!username || !firebaseKey) {
+                alert('Please enter both username and Firebase key');
+                return;
+            }
+            
+            currentUser = {
+                username: username,
+                createdAt: new Date().toISOString()
+            };
+            
+            // For demo purposes, we'll create a simple config
+            // In production, you'd parse the actual Firebase config
+            firebaseConfig = {
+                apiKey: firebaseKey,
+                authDomain: "your-project.firebaseapp.com",
+                databaseURL: "https://your-project.firebaseio.com",
+                projectId: "your-project",
+                storageBucket: "your-project.appspot.com",
+                messagingSenderId: "123456789",
+                appId: "your-app-id"
+            };
+            
+            localStorage.setItem('currentUser', JSON.stringify(currentUser));
+            localStorage.setItem('firebaseConfig', JSON.stringify(firebaseConfig));
+            
+            initializeFirebase();
+            showMainApp();
+        }
+
+        // Initialize Firebase
+        function initializeFirebase() {
+            try {
+                firebase.initializeApp(firebaseConfig);
+                database = firebase.database();
+                loadData();
+            } catch (error) {
+                console.error('Firebase initialization error:', error);
+                // For demo, we'll continue without Firebase
+                loadDemoData();
+            }
+        }
+
+        // Show main app
+        function showMainApp() {
+            document.getElementById('loginScreen').style.display = 'none';
+            document.getElementById('mainApp').style.display = 'flex';
+            document.getElementById('currentUser').textContent = currentUser.username;
+            document.getElementById('userInitial').textContent = currentUser.username.charAt(0).toUpperCase();
+            generateSerialNumber();
+        }
+
+        // Load data from Firebase or demo data
+        function loadData() {
+            if (database) {
+                // Load from Firebase
+                database.ref('accounts').on('value', (snapshot) => {
+                    accounts = snapshot.val() || {};
+                    updateAccountsDisplay();
+                });
+                
+                database.ref('resources').on('value', (snapshot) => {
+                    resources = snapshot.val() || {};
+                    updateResourcesDisplay();
+                });
+                
+                database.ref('projects').on('value', (snapshot) => {
+                    projects = snapshot.val() || {};
+                    updateProjectsDisplay();
+                });
+            } else {
+                loadDemoData();
+            }
+        }
+
+        // Load demo data
+        function loadDemoData() {
+            accounts = {
+                'acc1': {
+                    name: 'Acme Corp',
+                    stakeholders: [
+                        { name: 'John Doe', email: 'john@acme.com', isPrimary: true },
+                        { name: 'Jane Smith', email: 'jane@acme.com', isPrimary: false }
+                    ]
+                },
+                'acc2': {
+                    name: 'TechStart Inc',
+                    stakeholders: [
+                        { name: 'Mike Johnson', email: 'mike@techstart.com', isPrimary: true }
+                    ]
+                }
+            };
+            
+            resources = {
+                'res1': { name: 'Alice Developer', title: 'Senior Developer', level: 1 },
+                'res2': { name: 'Bob Designer', title: 'UI/UX Designer', level: 0 },
+                'res3': { name: 'Carol Manager', title: 'Project Manager', level: 2 }
+            };
+            
+            updateAccountsDisplay();
+            updateResourcesDisplay();
+            populateDropdowns();
+        }
+
+        // Tab switching
+        function switchTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.style.display = 'none';
+            });
+            
+            // Remove active class from all tab items
+            document.querySelectorAll('.tab-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            
+            // Show selected tab
+            document.getElementById(tabName + 'Tab').style.display = 'block';
+            
+            // Add active class to selected tab item
+            event.target.classList.add('active');
+        }
+
+        // User dropdown
+        function toggleUserDropdown() {
+            document.getElementById('userDropdown').classList.toggle('active');
+        }
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(event) {
+            if (!event.target.closest('.user-section')) {
+                document.getElementById('userDropdown').classList.remove('active');
+            }
+        });
+
+        // Download user details
+        function downloadUserDetails() {
+            const details = {
+                username: currentUser.username,
+                createdAt: currentUser.createdAt,
+                firebaseConfig: firebaseConfig
+            };
+            
+            const blob = new Blob([JSON.stringify(details, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${currentUser.username}_config.json`;
+            a.click();
+            
+            toggleUserDropdown();
+        }
+
+        // Logout
+        function logout() {
+            localStorage.removeItem('currentUser');
+            localStorage.removeItem('firebaseConfig');
+            location.reload();
+        }
+
+        // Generate serial number
+        function generateSerialNumber() {
+            const date = new Date();
+            const serial = `PRJ-${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, '0')}${String(date.getDate()).padStart(2, '0')}-${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`;
+            document.getElementById('serialNumber').value = serial;
+        }
+
+        // Update stakeholders dropdown
+        function updateStakeholders() {
+            const accountId = document.getElementById('account').value;
+            const primarySelect = document.getElementById('primaryStakeholder');
+            const secondarySelect = document.getElementById('secondaryStakeholders');
+            
+            primarySelect.innerHTML = '<option value="">Select Primary Stakeholder</option>';
+            secondarySelect.innerHTML = '';
+            
+            if (accountId && accounts[accountId]) {
+                const stakeholders = accounts[accountId].stakeholders || [];
+                
+                stakeholders.forEach((stakeholder, index) => {
+                    // Primary stakeholder dropdown
+                    const option1 = document.createElement('option');
+                    option1.value = index;
+                    option1.textContent = stakeholder.name;
+                    primarySelect.appendChild(option1);
+                    
+                    // Secondary stakeholders multi-select
+                    const option2 = document.createElement('option');
+                    option2.value = index;
+                    option2.textContent = stakeholder.name;
+                    secondarySelect.appendChild(option2);
+                });
+                
+                // Auto-fill POC
+                const primaryPOC = stakeholders.find(s => s.isPrimary);
+                if (primaryPOC) {
+                    document.getElementById('accountPOC').value = primaryPOC.name + ' - ' + primaryPOC.email;
+                }
+            }
+        }
+
+        // Calculate suggested timeline
+        function calculateTimeline() {
+            const bandwidth = parseInt(document.getElementById('bandwidth').value) || 0;
+            const selectedResources = Array.from(document.getElementById('projectResources').selectedOptions);
+            
+            if (bandwidth && selectedResources.length > 0) {
+                // Calculate based on resource efficiency and distribution
+                let totalEfficiency = 0;
+                selectedResources.forEach(option => {
+                    const resource = resources[option.value];
+                    if (resource) {
+                        const efficiency = 1 + (resource.level * 0.2);
+                        totalEfficiency += efficiency;
+                    }
+                });
+                
+                // Calculate days needed with resource distribution
+                const effectiveDays = Math.ceil(bandwidth / totalEfficiency) + 1; // +1 day buffer
+                
+                // Suggest timeline
+                const startDate = new Date();
+                const endDate = new Date(startDate);
+                endDate.setDate(endDate.getDate() + effectiveDays);
+                
+                document.getElementById('deliveryTimeline').value = endDate.toISOString().split('T')[0];
+                document.getElementById('suggestedTimeline').textContent = `Suggested: ${effectiveDays} days with selected resources`;
+            }
+        }
+
+        // Populate dropdowns
+        function populateDropdowns() {
+            // Populate accounts dropdown
+            const accountSelect = document.getElementById('account');
+            accountSelect.innerHTML = '<option value="">Select Account</option>';
+            
+            Object.entries(accounts).forEach(([id, account]) => {
+                const option = document.createElement('option');
+                option.value = id;
+                option.textContent = account.name;
+                accountSelect.appendChild(option);
+            });
+            
+            // Populate resources dropdown
+            const resourceSelect = document.getElementById('projectResources');
+            resourceSelect.innerHTML = '';
+            
+            Object.entries(resources).forEach(([id, resource]) => {
+                const option = document.createElement('option');
+                option.value = id;
+                option.textContent = `${resource.name} (${resource.title})`;
+                resourceSelect.appendChild(option);
+            });
+        }
+
+        // Update accounts display
+        function updateAccountsDisplay() {
+            const grid = document.getElementById('accountsGrid');
+            grid.innerHTML = '';
+            
+            Object.entries(accounts).forEach(([id, account]) => {
+                const card = document.createElement('div');
+                card.className = 'account-card';
+                
+                // Count active projects for this account
+                const activeProjects = Object.values(projects).filter(p => 
+                    p.account === id && p.status !== 'delivered'
+                ).length;
+                
+                card.innerHTML = `
+                    <div class="account-header">
+                        <h3 class="account-name">${account.name}</h3>
+                        <button class="btn btn-secondary" onclick="editAccount('${id}')">Edit</button>
+                    </div>
+                    <div style="display: grid; gap: 10px;">
+                        <div>
+                            <strong>Active Projects:</strong> ${activeProjects}
+                        </div>
+                        <div>
+                            <strong>Primary POC:</strong> ${account.stakeholders?.find(s => s.isPrimary)?.name || 'Not set'}
+                        </div>
+                    </div>
+                    <div class="stakeholder-list">
+                        <h4 style="font-size: 16px; margin-bottom: 10px;">Stakeholders</h4>
+                        ${(account.stakeholders || []).map((s, idx) => `
+                            <div class="stakeholder-item">
+                                <div>
+                                    <div style="font-weight: 500;">${s.name}</div>
+                                    <div style="font-size: 12px; color: #666;">${s.email}</div>
+                                </div>
+                                ${s.isPrimary ? '<span class="status-badge status-delivered">Primary</span>' : ''}
+                            </div>
+                        `).join('')}
+                        <button class="btn btn-secondary" onclick="addStakeholder('${id}')" style="margin-top: 10px; width: 100%;">
+                            + Add Stakeholder
+                        </button>
+                    </div>
+                `;
+                
+                grid.appendChild(card);
+            });
+        }
+
+        // Update resources display
+        function updateResourcesDisplay() {
+            const list = document.getElementById('resourcesList');
+            list.innerHTML = '';
+            
+            Object.entries(resources).forEach(([id, resource]) => {
+                const card = document.createElement('div');
+                card.className = 'resource-card';
+                card.onclick = (e) => {
+                    if (!e.target.closest('input') && !e.target.closest('button')) {
+                        toggleResourceDetails(id);
+                    }
+                };
+                
+                const efficiency = 100 + (resource.level * 20);
+                
+                card.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <h3 style="margin: 0; color: #1a1a2e;">${resource.name}</h3>
+                            <p style="margin: 5px 0; color: #666;">${resource.title}</p>
+                            <span class="status-badge" style="background: ${efficiency >= 100 ? '#e8f5e9' : '#fce4ec'}; color: ${efficiency >= 100 ? '#388e3c' : '#c2185b'};">
+                                ${efficiency}% Efficiency
+                            </span>
+                        </div>
+                        <div style="font-size: 24px; color: #667eea;">
+                            ▼
+                        </div>
+                    </div>
+                    <div id="resource-${id}-details" class="resource-details">
+                        <div class="form-grid" style="gap: 15px;">
+                            <div class="form-group">
+                                <label>Name</label>
+                                <input type="text" value="${resource.name}" onchange="updateResource('${id}', 'name', this.value)">
+                            </div>
+                            <div class="form-group">
+                                <label>Title</label>
+                                <input type="text" value="${resource.title}" onchange="updateResource('${id}', 'title', this.value)">
+                            </div>
+                            <div class="form-group">
+                                <label>Efficiency Level</label>
+                                <input type="number" value="${resource.level}" min="-2" max="3" onchange="updateResource('${id}', 'level', this.value)">
+                            </div>
+                        </div>
+                        <button class="btn btn-secondary" onclick="deleteResource('${id}')" style="margin-top: 15px;">
+                            Delete Resource
+                        </button>
+                    </div>
+                `;
+                
+                list.appendChild(card);
+            });
+        }
+
+        // Toggle resource details
+        function toggleResourceDetails(id) {
+            const details = document.getElementById(`resource-${id}-details`);
+            details.classList.toggle('show');
+        }
+
+        // Update resource
+        function updateResource(id, field, value) {
+            if (resources[id]) {
+                resources[id][field] = field === 'level' ? parseInt(value) : value;
+                
+                if (database) {
+                    database.ref(`resources/${id}`).update(resources[id]);
+                }
+                
+                updateResourcesDisplay();
+                populateDropdowns();
+            }
+        }
+
+        // Delete resource
+        function deleteResource(id) {
+            if (confirm('Are you sure you want to delete this resource?')) {
+                delete resources[id];
+                
+                if (database) {
+                    database.ref(`resources/${id}`).remove();
+                }
+                
+                updateResourcesDisplay();
+                populateDropdowns();
+            }
+        }
+
+        // Show add account modal
+        function showAddAccountModal() {
+            document.getElementById('accountModal').classList.add('active');
+        }
+
+        // Show add resource modal
+        function showAddResourceModal() {
+            document.getElementById('resourceModal').classList.add('active');
+        }
+
+        // Close modal
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+        }
+
+        // Save account
+        function saveAccount() {
+            const name = document.getElementById('modalAccountName').value;
+            
+            if (!name) {
+                alert('Please enter account name');
+                return;
+            }
+            
+            const id = 'acc' + Date.now();
+            accounts[id] = {
+                name: name,
+                stakeholders: []
+            };
+            
+            if (database) {
+                database.ref(`accounts/${id}`).set(accounts[id]);
+            }
+            
+            updateAccountsDisplay();
+            populateDropdowns();
+            closeModal('accountModal');
+            
+            // Clear modal
+            document.getElementById('modalAccountName').value = '';
+        }
+
+        // Save resource
+        function saveResource() {
+            const name = document.getElementById('modalResourceName').value;
+            const title = document.getElementById('modalResourceTitle').value;
+            const level = parseInt(document.getElementById('modalResourceLevel').value);
+            
+            if (!name || !title) {
+                alert('Please fill all fields');
+                return;
+            }
+            
+            const id = 'res' + Date.now();
+            resources[id] = {
+                name: name,
+                title: title,
+                level: level
+            };
+            
+            if (database) {
+                database.ref(`resources/${id}`).set(resources[id]);
+            }
+            
+            updateResourcesDisplay();
+            populateDropdowns();
+            closeModal('resourceModal');
+            
+            // Clear modal
+            document.getElementById('modalResourceName').value = '';
+            document.getElementById('modalResourceTitle').value = '';
+            document.getElementById('modalResourceLevel').value = '0';
+        }
+
+        // Add stakeholder to account
+        function addStakeholder(accountId) {
+            const name = prompt('Stakeholder name:');
+            const email = prompt('Stakeholder email:');
+            
+            if (name && email) {
+                if (!accounts[accountId].stakeholders) {
+                    accounts[accountId].stakeholders = [];
+                }
+                
+                accounts[accountId].stakeholders.push({
+                    name: name,
+                    email: email,
+                    isPrimary: accounts[accountId].stakeholders.length === 0
+                });
+                
+                if (database) {
+                    database.ref(`accounts/${accountId}`).set(accounts[accountId]);
+                }
+                
+                updateAccountsDisplay();
+            }
+        }
+
+        // Handle dashboard form submission
+        document.getElementById('dashboardForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const project = {
+                serialNumber: document.getElementById('serialNumber').value,
+                account: document.getElementById('account').value,
+                primaryStakeholder: document.getElementById('primaryStakeholder').value,
+                secondaryStakeholders: Array.from(document.getElementById('secondaryStakeholders').selectedOptions).map(o => o.value),
+                accountPOC: document.getElementById('accountPOC').value,
+                projectName: document.getElementById('projectName').value,
+                projectResources: Array.from(document.getElementById('projectResources').selectedOptions).map(o => o.value),
+                bandwidth: document.getElementById('bandwidth').value,
+                status: document.getElementById('status').value,
+                deliveryType: document.getElementById('deliveryType').value,
+                deliveryTimeline: document.getElementById('deliveryTimeline').value,
+                draupCC: document.getElementById('draupCC').value,
+                notes: document.getElementById('notes').value,
+                createdAt: new Date().toISOString(),
+                createdBy: currentUser.username
+            };
+            
+            const projectId = 'proj' + Date.now();
+            projects[projectId] = project;
+            
+            if (database) {
+                database.ref(`projects/${projectId}`).set(project);
+            }
+            
+            alert('Project saved successfully!');
+            clearForm();
+        });
+
+        // Clear form
+        function clearForm() {
+            document.getElementById('dashboardForm').reset();
+            generateSerialNumber();
+        }
+
+        // Update delivery fields based on type
+        function updateDeliveryFields() {
+            const type = document.getElementById('deliveryType').value;
+            // In full implementation, this would show multiple date fields for multi-phase
+        }
+
+        // Initialize app on load
+        window.onload = initializeApp;
+    </script>
+</body>
+</html>
