@@ -318,6 +318,95 @@
             font-size: 13px;
         }
 
+        /* Multi-phase Delivery */
+        .delivery-dates-section {
+            grid-column: 1 / -1;
+        }
+
+        .single-delivery-dates {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .phases-container {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .phase-row {
+            display: grid;
+            grid-template-columns: auto 1fr 1fr 40px;
+            gap: 15px;
+            align-items: end;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border: 1px solid #e0e0e0;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .phase-label {
+            font-weight: 600;
+            color: #667eea;
+            font-size: 14px;
+            padding-bottom: 12px;
+            white-space: nowrap;
+        }
+
+        .phase-row .form-group {
+            margin: 0;
+        }
+
+        .remove-phase-btn {
+            width: 36px;
+            height: 36px;
+            border: none;
+            background: #fce4ec;
+            color: #c2185b;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            margin-bottom: 2px;
+        }
+
+        .remove-phase-btn:hover {
+            background: #f8bbd0;
+            transform: scale(1.1);
+        }
+
+        .add-phase-btn {
+            padding: 10px 20px;
+            border: 2px dashed #667eea;
+            background: transparent;
+            color: #667eea;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.2s;
+            width: 100%;
+        }
+
+        .add-phase-btn:hover {
+            background: #f0f0ff;
+            border-style: solid;
+        }
+
+        @media (max-width: 768px) {
+            .single-delivery-dates {
+                grid-template-columns: 1fr;
+            }
+            .phase-row {
+                grid-template-columns: 1fr;
+            }
+        }
+
         /* Account Cards */
         .account-grid {
             display: grid;
@@ -726,16 +815,34 @@
                                     <option value="multi">Multi-phase Delivery</option>
                                 </select>
                             </div>
-                            
-                            <div class="form-group">
-                                <label>Delivery Timeline</label>
-                                <input type="date" id="deliveryTimeline">
-                                <div id="suggestedTimeline" style="color: #667eea; font-size: 12px; margin-top: 5px;"></div>
-                            </div>
-                            
+
                             <div class="form-group">
                                 <label>Draup CC SR No</label>
                                 <input type="text" id="draupCC" placeholder="Internal tracking number">
+                            </div>
+                        </div>
+
+                        <!-- Delivery Dates Section -->
+                        <div class="delivery-dates-section" style="margin-bottom: 20px;">
+                            <!-- Single Delivery Dates -->
+                            <div id="singleDeliveryDates" class="single-delivery-dates">
+                                <div class="form-group">
+                                    <label>Starting Date</label>
+                                    <input type="date" id="startingDate">
+                                </div>
+                                <div class="form-group">
+                                    <label>Delivery Date</label>
+                                    <input type="date" id="deliveryTimeline">
+                                    <div id="suggestedTimeline" style="color: #667eea; font-size: 12px; margin-top: 5px;"></div>
+                                </div>
+                            </div>
+
+                            <!-- Multi-phase Delivery Dates -->
+                            <div id="multiDeliveryDates" style="display: none;">
+                                <div class="phases-container" id="phasesContainer">
+                                    <!-- Phase rows generated dynamically -->
+                                </div>
+                                <button type="button" class="add-phase-btn" onclick="addPhase()" style="margin-top: 10px;">+ Add Phase</button>
                             </div>
                         </div>
                         
@@ -1204,13 +1311,27 @@
                 // Calculate days needed with resource distribution
                 const effectiveDays = Math.ceil(bandwidth / totalEfficiency) + 1; // +1 day buffer
 
-                // Suggest timeline
+                // Set starting date to today and delivery date based on calculation
                 const startDate = new Date();
                 const endDate = new Date(startDate);
                 endDate.setDate(endDate.getDate() + effectiveDays);
 
-                document.getElementById('deliveryTimeline').value = endDate.toISOString().split('T')[0];
+                const startISO = startDate.toISOString().split('T')[0];
+                const endISO = endDate.toISOString().split('T')[0];
+
+                // Update single delivery fields
+                document.getElementById('startingDate').value = startISO;
+                document.getElementById('deliveryTimeline').value = endISO;
                 document.getElementById('suggestedTimeline').textContent = `Suggested: ${effectiveDays} days with selected resources`;
+
+                // If multi-phase, auto-fill first phase dates
+                const firstPhase = document.querySelector('#phasesContainer .phase-row');
+                if (firstPhase) {
+                    const phaseStart = firstPhase.querySelector('.phase-start');
+                    const phaseEnd = firstPhase.querySelector('.phase-end');
+                    if (phaseStart && !phaseStart.value) phaseStart.value = startISO;
+                    if (phaseEnd && !phaseEnd.value) phaseEnd.value = endISO;
+                }
             }
         }
 
@@ -1493,6 +1614,26 @@
         document.getElementById('dashboardForm').addEventListener('submit', function(e) {
             e.preventDefault();
             
+            const deliveryType = document.getElementById('deliveryType').value;
+            let deliveryData = {};
+
+            if (deliveryType === 'single') {
+                deliveryData = {
+                    startingDate: document.getElementById('startingDate').value,
+                    deliveryDate: document.getElementById('deliveryTimeline').value
+                };
+            } else {
+                const phases = [];
+                document.querySelectorAll('#phasesContainer .phase-row').forEach((row, index) => {
+                    phases.push({
+                        phase: index + 1,
+                        startingDate: row.querySelector('.phase-start').value,
+                        deliveryDate: row.querySelector('.phase-end').value
+                    });
+                });
+                deliveryData = { phases: phases };
+            }
+
             const project = {
                 serialNumber: document.getElementById('serialNumber').value,
                 account: document.getElementById('account').value,
@@ -1503,8 +1644,8 @@
                 projectResources: getCheckedValues('projectResources'),
                 bandwidth: document.getElementById('bandwidth').value,
                 status: document.getElementById('status').value,
-                deliveryType: document.getElementById('deliveryType').value,
-                deliveryTimeline: document.getElementById('deliveryTimeline').value,
+                deliveryType: deliveryType,
+                delivery: deliveryData,
                 draupCC: document.getElementById('draupCC').value,
                 notes: document.getElementById('notes').value,
                 createdAt: new Date().toISOString(),
@@ -1537,12 +1678,74 @@
             document.getElementById('primaryStakeholderPlaceholder').textContent = 'Select Primary Stakeholders';
             document.getElementById('secondaryStakeholdersPlaceholder').textContent = 'Select Secondary Stakeholders';
             document.getElementById('projectResourcesPlaceholder').textContent = 'Select Resources';
+
+            // Reset delivery dates
+            document.getElementById('startingDate').value = '';
+            document.getElementById('suggestedTimeline').textContent = '';
+            document.getElementById('phasesContainer').innerHTML = '';
+            phaseCount = 0;
+            document.getElementById('singleDeliveryDates').style.display = 'grid';
+            document.getElementById('multiDeliveryDates').style.display = 'none';
         }
 
         // Update delivery fields based on type
+        let phaseCount = 0;
         function updateDeliveryFields() {
             const type = document.getElementById('deliveryType').value;
-            // In full implementation, this would show multiple date fields for multi-phase
+            const singleSection = document.getElementById('singleDeliveryDates');
+            const multiSection = document.getElementById('multiDeliveryDates');
+
+            if (type === 'single') {
+                singleSection.style.display = 'grid';
+                multiSection.style.display = 'none';
+            } else {
+                singleSection.style.display = 'none';
+                multiSection.style.display = 'block';
+                // Add two phases by default if empty
+                if (phaseCount === 0) {
+                    addPhase();
+                    addPhase();
+                }
+            }
+        }
+
+        // Add a new phase row
+        function addPhase() {
+            phaseCount++;
+            const container = document.getElementById('phasesContainer');
+            const row = document.createElement('div');
+            row.className = 'phase-row';
+            row.id = 'phase-' + phaseCount;
+            row.innerHTML = `
+                <div class="phase-label">Phase ${container.children.length + 1}</div>
+                <div class="form-group">
+                    <label>Starting Date</label>
+                    <input type="date" class="phase-start" name="phaseStart">
+                </div>
+                <div class="form-group">
+                    <label>Delivery Date</label>
+                    <input type="date" class="phase-end" name="phaseEnd">
+                </div>
+                <button type="button" class="remove-phase-btn" onclick="removePhase('phase-${phaseCount}')" title="Remove phase">&times;</button>
+            `;
+            container.appendChild(row);
+        }
+
+        // Remove a phase row
+        function removePhase(phaseId) {
+            const row = document.getElementById(phaseId);
+            if (row) {
+                row.remove();
+                renumberPhases();
+            }
+        }
+
+        // Renumber phase labels after removal
+        function renumberPhases() {
+            const rows = document.querySelectorAll('#phasesContainer .phase-row');
+            rows.forEach((row, index) => {
+                row.querySelector('.phase-label').textContent = 'Phase ' + (index + 1);
+            });
         }
 
         // Initialize app on load
