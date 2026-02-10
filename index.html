@@ -881,6 +881,45 @@
             color: #1a1a2e;
         }
 
+        /* Export Modal */
+        .export-option {
+            background: #f8f9fa;
+            border: 1px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 18px;
+            margin-bottom: 15px;
+            transition: border-color 0.2s;
+        }
+
+        .export-option:hover {
+            border-color: #667eea;
+        }
+
+        .export-option-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .export-option-title {
+            font-weight: 600;
+            font-size: 15px;
+            color: #1a1a2e;
+            margin-bottom: 4px;
+        }
+
+        .export-option-desc {
+            font-size: 13px;
+            color: #666;
+        }
+
+        .export-date-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
         /* Holidays & Leaves */
         .hl-sections {
             display: grid;
@@ -1225,6 +1264,12 @@
                     <p>View project timelines and resource allocation</p>
                 </div>
 
+                <div style="margin-bottom: 20px;">
+                    <button class="btn btn-primary" onclick="showModal('exportModal')">
+                        Export Data
+                    </button>
+                </div>
+
                 <div class="gantt-container" id="ganttContainer">
                     <!-- Rendered dynamically by renderGanttChart() -->
                 </div>
@@ -1362,6 +1407,55 @@
             <div style="display: flex; gap: 15px; margin-top: 20px;">
                 <button class="btn btn-primary" onclick="saveLeave()">Save Leave</button>
                 <button class="btn btn-secondary" onclick="closeModal('leaveModal')">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Export Modal -->
+    <div id="exportModal" class="modal">
+        <div class="modal-content" style="max-width: 550px;">
+            <h3 style="margin-bottom: 20px;">Export Data</h3>
+
+            <!-- Option 1: Active Tracks -->
+            <div class="export-option">
+                <div class="export-option-header">
+                    <div>
+                        <div class="export-option-title">Active Tracks</div>
+                        <div class="export-option-desc">Export all projects that have not been delivered yet, with full details.</div>
+                    </div>
+                    <button class="btn btn-primary" onclick="exportActiveTracks()">Download CSV</button>
+                </div>
+            </div>
+
+            <!-- Option 2: Date Range Log -->
+            <div class="export-option">
+                <div class="export-option-header" style="flex-direction: column; align-items: stretch;">
+                    <div style="margin-bottom: 12px;">
+                        <div class="export-option-title">Full Log (Date Range)</div>
+                        <div class="export-option-desc">Export all tracks (delivered and undelivered) within a date range based on delivery date.</div>
+                    </div>
+                    <div class="export-date-row">
+                        <div class="form-group">
+                            <label>Start Date</label>
+                            <input type="date" id="exportStartDate">
+                        </div>
+                        <div class="form-group">
+                            <label>End Date</label>
+                            <input type="date" id="exportEndDate" disabled>
+                        </div>
+                    </div>
+                    <div style="margin: 8px 0 12px;">
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px; font-weight: 500; color: #333;">
+                            <input type="checkbox" id="exportNoEndDate" onchange="toggleExportEndDate()" style="width:16px;height:16px;accent-color:#667eea;">
+                            All delivery dates after start date (no end date limit)
+                        </label>
+                    </div>
+                    <button class="btn btn-primary" onclick="exportDateRangeLog()" style="align-self: flex-end;">Download CSV</button>
+                </div>
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; margin-top: 15px;">
+                <button class="btn btn-secondary" onclick="closeModal('exportModal')">Close</button>
             </div>
         </div>
     </div>
@@ -2491,6 +2585,161 @@
             rows.forEach((row, index) => {
                 row.querySelector('.phase-label').textContent = 'Phase ' + (index + 1);
             });
+        }
+
+        // Toggle export end date field
+        function toggleExportEndDate() {
+            const checked = document.getElementById('exportNoEndDate').checked;
+            const endInput = document.getElementById('exportEndDate');
+            endInput.disabled = checked;
+            if (checked) endInput.value = '';
+        }
+
+        // Helper: get project delivery dates (returns {startDate, endDate} or array for multi-phase)
+        function getProjectDates(p) {
+            const dates = [];
+            if (p.deliveryType === 'multi' && p.delivery && p.delivery.phases) {
+                p.delivery.phases.forEach(phase => {
+                    if (phase.startingDate || phase.deliveryDate) {
+                        dates.push({ startDate: phase.startingDate || '', endDate: phase.deliveryDate || '', phase: phase.phase });
+                    }
+                });
+            } else if (p.delivery) {
+                dates.push({ startDate: p.delivery.startingDate || '', endDate: p.delivery.deliveryDate || '', phase: null });
+            } else {
+                // Legacy format
+                dates.push({ startDate: p.createdAt ? p.createdAt.split('T')[0] : '', endDate: p.deliveryTimeline || '', phase: null });
+            }
+            return dates;
+        }
+
+        // Helper: resolve resource names from IDs array
+        function resolveResourceNames(ids) {
+            if (!ids || !Array.isArray(ids)) return '';
+            return ids.map(id => resources[id] ? resources[id].name : id).join(', ');
+        }
+
+        // Helper: resolve stakeholder names from index array
+        function resolveStakeholderNames(indices, accountId) {
+            if (!indices || !Array.isArray(indices)) return '';
+            const stakeholders = (accountId && accounts[accountId]) ? accounts[accountId].stakeholders || [] : [];
+            return indices.map(i => {
+                const s = stakeholders[parseInt(i)];
+                return s ? s.name : i;
+            }).join(', ');
+        }
+
+        // Helper: build a CSV row from a project entry
+        function buildProjectCSVRow(id, p, dateInfo) {
+            const accountName = (p.account && accounts[p.account]) ? accounts[p.account].name : '';
+            const primaryNames = resolveStakeholderNames(p.primaryStakeholder, p.account);
+            const secondaryNames = resolveStakeholderNames(p.secondaryStakeholders, p.account);
+            const resourceNames = resolveResourceNames(p.projectResources);
+            const statusLabel = (p.status || '').replace(/-/g, ' ');
+            const phaseLabel = dateInfo.phase ? 'Phase ' + dateInfo.phase : (p.deliveryType === 'multi' ? 'Multi-phase' : 'Single');
+
+            return [
+                p.serialNumber || '',
+                accountName,
+                p.projectName || '',
+                primaryNames,
+                secondaryNames,
+                p.accountPOC || '',
+                resourceNames,
+                p.bandwidth || '',
+                statusLabel,
+                phaseLabel,
+                dateInfo.startDate,
+                dateInfo.endDate,
+                p.draupCC || '',
+                (p.notes || '').replace(/"/g, '""'),
+                p.createdBy || '',
+                p.createdAt ? p.createdAt.split('T')[0] : ''
+            ];
+        }
+
+        // CSV header row
+        function getCSVHeader() {
+            return ['Serial Number', 'Account', 'Project Name', 'Primary Stakeholders', 'Secondary Stakeholders',
+                    'Account POC', 'Resources', 'Bandwidth (days)', 'Status', 'Delivery Type',
+                    'Start Date', 'Delivery Date', 'Draup CC SR No', 'Notes', 'Created By', 'Created At'];
+        }
+
+        // Helper: convert rows array to CSV string and trigger download
+        function downloadCSV(rows, filename) {
+            const header = getCSVHeader();
+            const csvContent = [header, ...rows].map(row =>
+                row.map(cell => '"' + String(cell).replace(/"/g, '""') + '"').join(',')
+            ).join('\n');
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // Export Option 1: Active tracks (not delivered)
+        function exportActiveTracks() {
+            const rows = [];
+            Object.entries(projects).forEach(([id, p]) => {
+                if (p.status === 'delivered') return;
+                const dates = getProjectDates(p);
+                dates.forEach(d => {
+                    rows.push(buildProjectCSVRow(id, p, d));
+                });
+            });
+
+            if (rows.length === 0) {
+                alert('No active (undelivered) tracks to export.');
+                return;
+            }
+
+            const today = toDateStr(new Date());
+            downloadCSV(rows, 'active_tracks_' + today + '.csv');
+            closeModal('exportModal');
+        }
+
+        // Export Option 2: Date range log
+        function exportDateRangeLog() {
+            const startDate = document.getElementById('exportStartDate').value;
+            const noEndDate = document.getElementById('exportNoEndDate').checked;
+            const endDate = document.getElementById('exportEndDate').value;
+
+            if (!startDate) {
+                alert('Please select a start date.');
+                return;
+            }
+            if (!noEndDate && !endDate) {
+                alert('Please select an end date or check "All delivery dates after start date".');
+                return;
+            }
+
+            const rows = [];
+            Object.entries(projects).forEach(([id, p]) => {
+                const dates = getProjectDates(p);
+                dates.forEach(d => {
+                    // Filter by delivery date within range
+                    const delDate = d.endDate;
+                    if (!delDate) return; // skip entries with no delivery date
+
+                    if (delDate < startDate) return; // before range
+                    if (!noEndDate && delDate > endDate) return; // after range
+
+                    rows.push(buildProjectCSVRow(id, p, d));
+                });
+            });
+
+            if (rows.length === 0) {
+                alert('No tracks found in the selected date range.');
+                return;
+            }
+
+            const rangeLabel = noEndDate ? startDate + '_onward' : startDate + '_to_' + endDate;
+            downloadCSV(rows, 'project_log_' + rangeLabel + '.csv');
+            closeModal('exportModal');
         }
 
         // Show modal (generic)
