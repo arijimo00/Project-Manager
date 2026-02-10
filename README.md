@@ -1,25 +1,46 @@
-# Getting Started: Creating a New Account
+# Project Manager
 
-This guide walks you through setting up your Project Manager account step by step.
+A web-based project management dashboard for tracking projects, accounts, stakeholders, resources, and delivery timelines — all in a single HTML file powered by Firebase Realtime Database.
 
-## Prerequisites
+## Features
 
-Before you can log in to the Project Manager app, you need a **Firebase Realtime Database**. If you don't have one yet, follow Part 1 below. If you already have one, skip to Part 2.
+- Dashboard entry form with auto-generated serial numbers
+- Account and stakeholder management
+- Resource tracking with efficiency levels
+- Multi-select checkboxes for stakeholders and resources
+- Single and multi-phase delivery date support
+- Interactive Gantt chart timeline view
+- Cloud persistence via Firebase Realtime Database
+- Local session persistence via localStorage
+
+## Tech Stack
+
+- **Frontend**: Vanilla HTML, CSS, JavaScript (single `index.html` file)
+- **Backend**: Firebase Realtime Database (v9 compat SDK, loaded via CDN)
+- **Deployment**: Static hosting (GitHub Pages, or any static file server)
 
 ---
 
-## Part 1: Setting Up Firebase (One-Time Setup)
+## Getting Started: Creating a New Account
 
-### Step 1: Create a Google Account
+### Prerequisites
+
+Before you can log in, you need a **Firebase Realtime Database**. If you already have one, skip to [Part 2](#part-2-logging-in-to-the-app).
+
+---
+
+### Part 1: Setting Up Firebase (One-Time Setup)
+
+#### Step 1: Create a Google Account
 
 If you don't already have one, go to [accounts.google.com](https://accounts.google.com) and create a free Google account.
 
-### Step 2: Go to Firebase Console
+#### Step 2: Go to Firebase Console
 
 1. Open your browser and navigate to [console.firebase.google.com](https://console.firebase.google.com).
 2. Sign in with your Google account.
 
-### Step 3: Create a New Firebase Project
+#### Step 3: Create a New Firebase Project
 
 1. Click **"Create a project"** (or **"Add project"**).
 2. Enter a project name (e.g., `my-project-manager`).
@@ -27,7 +48,7 @@ If you don't already have one, go to [accounts.google.com](https://accounts.goog
 4. Click **"Create project"** and wait for it to finish.
 5. Click **"Continue"** when ready.
 
-### Step 4: Set Up the Realtime Database
+#### Step 4: Set Up the Realtime Database
 
 1. In the left sidebar, click **"Build"** then **"Realtime Database"**.
 2. Click **"Create Database"**.
@@ -39,7 +60,7 @@ If you don't already have one, go to [accounts.google.com](https://accounts.goog
    https://my-project-manager-default-rtdb.firebaseio.com
    ```
 
-### Step 5: Get Your API Key
+#### Step 5: Get Your API Key
 
 1. In the left sidebar, click the **gear icon** next to "Project Overview", then select **"Project settings"**.
 2. Scroll down to the **"Your apps"** section.
@@ -54,28 +75,28 @@ You now have the two pieces of information needed to log in:
 
 ---
 
-## Part 2: Logging In to the Project Manager App
+### Part 2: Logging In to the App
 
-### Step 1: Open the App
+#### Step 1: Open the App
 
 Open the Project Manager app in your browser. You will see the login screen with the title **"Welcome to Project Manager"**.
 
-### Step 2: Enter Your Username
+#### Step 2: Enter Your Username
 
 In the **Username** field, type the name you want to use (e.g., `john.doe`). This can be any name you choose -- it will be displayed in the app as your identity.
 
-### Step 3: Enter Your Firebase API Key
+#### Step 3: Enter Your Firebase API Key
 
 In the **Firebase API Key** field, paste the API key you copied from the Firebase Console (see Part 1, Step 5).
 
-### Step 4: Enter Your Firebase Database URL
+#### Step 4: Enter Your Firebase Database URL
 
 In the **Firebase Database URL** field, paste your database URL. It should look like:
 ```
 https://your-project-name.firebaseio.com
 ```
 
-### Step 5: Click Login
+#### Step 5: Click Login
 
 Click the **Login** button. The app will:
 1. Save your credentials locally so you stay logged in.
