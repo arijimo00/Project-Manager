@@ -881,6 +881,83 @@
             color: #1a1a2e;
         }
 
+        /* Edit Stakeholder Rows */
+        .edit-stakeholder-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            border: 1px solid #e0e0e0;
+        }
+
+        .edit-stakeholder-row .stakeholder-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .edit-stakeholder-row .stakeholder-info .name {
+            font-weight: 600;
+            font-size: 14px;
+            color: #1a1a2e;
+        }
+
+        .edit-stakeholder-row .stakeholder-info .email {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .edit-stakeholder-actions {
+            display: flex;
+            gap: 6px;
+            flex-shrink: 0;
+        }
+
+        .btn-small {
+            padding: 5px 10px;
+            border: none;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-set-primary {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+
+        .btn-set-primary:hover {
+            background: #bbdefb;
+        }
+
+        .btn-set-primary.is-primary {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .btn-remove-stakeholder {
+            background: #fce4ec;
+            color: #c2185b;
+        }
+
+        .btn-remove-stakeholder:hover {
+            background: #f8bbd0;
+        }
+
+        /* Account Dashboard Header */
+        .account-tab-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
         /* Export Modal */
         .export-option {
             background: #f8f9fa;
@@ -1247,11 +1324,16 @@
                     <h1>Account Dashboard</h1>
                     <p>Manage accounts and stakeholders</p>
                 </div>
-                
-                <button class="btn btn-primary" onclick="showAddAccountModal()" style="margin-bottom: 25px;">
-                    + Add New Account
-                </button>
-                
+
+                <div class="account-tab-header">
+                    <button class="btn btn-primary" onclick="showAddAccountModal()">
+                        + Add New Account
+                    </button>
+                    <button class="btn btn-secondary" onclick="exportAccountsXLS()">
+                        Export to XLS
+                    </button>
+                </div>
+
                 <div id="accountsGrid" class="account-grid">
                     <!-- Account cards will be dynamically generated here -->
                 </div>
@@ -1407,6 +1489,25 @@
             <div style="display: flex; gap: 15px; margin-top: 20px;">
                 <button class="btn btn-primary" onclick="saveLeave()">Save Leave</button>
                 <button class="btn btn-secondary" onclick="closeModal('leaveModal')">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Account Modal -->
+    <div id="editAccountModal" class="modal">
+        <div class="modal-content" style="max-width: 550px;">
+            <h3>Edit Account</h3>
+            <div class="form-group" style="margin-bottom: 20px;">
+                <label>Account Name</label>
+                <input type="text" id="editAccountName">
+            </div>
+            <h4 style="font-size: 15px; margin-bottom: 12px; color: #1a1a2e;">Stakeholders</h4>
+            <div id="editStakeholdersList" style="max-height: 300px; overflow-y: auto; margin-bottom: 15px;">
+                <!-- Populated dynamically -->
+            </div>
+            <div style="display: flex; gap: 15px; margin-top: 20px;">
+                <button class="btn btn-primary" onclick="saveEditAccount()">Save Changes</button>
+                <button class="btn btn-secondary" onclick="closeModal('editAccountModal')">Cancel</button>
             </div>
         </div>
     </div>
@@ -1998,11 +2099,14 @@
                         <h4 style="font-size: 16px; margin-bottom: 10px;">Stakeholders</h4>
                         ${(account.stakeholders || []).map((s, idx) => `
                             <div class="stakeholder-item">
-                                <div>
+                                <div style="flex: 1;">
                                     <div style="font-weight: 500;">${s.name}</div>
                                     <div style="font-size: 12px; color: #666;">${s.email}</div>
                                 </div>
-                                ${s.isPrimary ? '<span class="status-badge status-delivered">Primary</span>' : ''}
+                                <div class="edit-stakeholder-actions">
+                                    <button class="btn-small ${s.isPrimary ? 'btn-set-primary is-primary' : 'btn-set-primary'}" onclick="event.stopPropagation(); setPrimaryStakeholder('${id}', ${idx})">${s.isPrimary ? 'Primary' : 'Set Primary'}</button>
+                                    <button class="btn-small btn-remove-stakeholder" onclick="event.stopPropagation(); removeStakeholder('${id}', ${idx})">Remove</button>
+                                </div>
                             </div>
                         `).join('')}
                         <button class="btn btn-secondary" onclick="addStakeholder('${id}')" style="margin-top: 10px; width: 100%;">
@@ -2423,6 +2527,160 @@
             document.getElementById('modalResourceName').value = '';
             document.getElementById('modalResourceTitle').value = '';
             document.getElementById('modalResourceLevel').value = '0';
+        }
+
+        // Edit account (open modal)
+        let editingAccountId = null;
+        function editAccount(accountId) {
+            editingAccountId = accountId;
+            const account = accounts[accountId];
+            if (!account) return;
+
+            document.getElementById('editAccountName').value = account.name;
+
+            const list = document.getElementById('editStakeholdersList');
+            const stakeholders = account.stakeholders || [];
+
+            if (stakeholders.length === 0) {
+                list.innerHTML = '<div style="text-align:center;color:#999;padding:15px;">No stakeholders added yet.</div>';
+            } else {
+                list.innerHTML = stakeholders.map((s, idx) => `
+                    <div class="edit-stakeholder-row">
+                        <div class="stakeholder-info">
+                            <div class="name">${s.name}</div>
+                            <div class="email">${s.email}</div>
+                        </div>
+                        <div class="edit-stakeholder-actions">
+                            <button class="btn-small ${s.isPrimary ? 'btn-set-primary is-primary' : 'btn-set-primary'}" onclick="setEditPrimary(${idx})">${s.isPrimary ? 'Primary' : 'Set Primary'}</button>
+                            <button class="btn-small btn-remove-stakeholder" onclick="removeEditStakeholder(${idx})">Remove</button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            document.getElementById('editAccountModal').classList.add('active');
+        }
+
+        // Set primary in edit modal (updates local data and re-renders modal)
+        function setEditPrimary(idx) {
+            if (!editingAccountId || !accounts[editingAccountId]) return;
+            const stakeholders = accounts[editingAccountId].stakeholders || [];
+            stakeholders.forEach((s, i) => { s.isPrimary = (i === idx); });
+            editAccount(editingAccountId); // re-render modal
+        }
+
+        // Remove stakeholder in edit modal
+        function removeEditStakeholder(idx) {
+            if (!editingAccountId || !accounts[editingAccountId]) return;
+            const stakeholders = accounts[editingAccountId].stakeholders || [];
+            if (!confirm('Remove ' + stakeholders[idx].name + ' from this account?')) return;
+            stakeholders.splice(idx, 1);
+            editAccount(editingAccountId); // re-render modal
+        }
+
+        // Save edit account changes
+        function saveEditAccount() {
+            if (!editingAccountId || !accounts[editingAccountId]) return;
+            const newName = document.getElementById('editAccountName').value.trim();
+            if (!newName) {
+                alert('Account name cannot be empty.');
+                return;
+            }
+            accounts[editingAccountId].name = newName;
+
+            if (database) {
+                database.ref('accounts/' + editingAccountId).set(accounts[editingAccountId]);
+            }
+
+            updateAccountsDisplay();
+            populateDropdowns();
+            closeModal('editAccountModal');
+            editingAccountId = null;
+        }
+
+        // Set primary stakeholder directly from card
+        function setPrimaryStakeholder(accountId, idx) {
+            if (!accounts[accountId]) return;
+            const stakeholders = accounts[accountId].stakeholders || [];
+            stakeholders.forEach((s, i) => { s.isPrimary = (i === idx); });
+
+            if (database) {
+                database.ref('accounts/' + accountId).set(accounts[accountId]);
+            }
+            updateAccountsDisplay();
+        }
+
+        // Remove stakeholder directly from card
+        function removeStakeholder(accountId, idx) {
+            if (!accounts[accountId]) return;
+            const stakeholders = accounts[accountId].stakeholders || [];
+            if (!confirm('Remove ' + stakeholders[idx].name + ' from this account?')) return;
+            stakeholders.splice(idx, 1);
+
+            if (database) {
+                database.ref('accounts/' + accountId).set(accounts[accountId]);
+            }
+            updateAccountsDisplay();
+        }
+
+        // Export accounts to XLS
+        function exportAccountsXLS() {
+            const accountEntries = Object.entries(accounts);
+            if (accountEntries.length === 0) {
+                alert('No accounts to export.');
+                return;
+            }
+
+            let tableRows = '';
+            accountEntries.forEach(([id, account]) => {
+                const stakeholders = account.stakeholders || [];
+                const activeProjects = Object.values(projects).filter(p =>
+                    p.account === id && p.status !== 'delivered'
+                ).length;
+                const totalProjects = Object.values(projects).filter(p => p.account === id).length;
+                const primaryPOC = stakeholders.find(s => s.isPrimary);
+
+                if (stakeholders.length === 0) {
+                    tableRows += '<tr>' +
+                        '<td>' + account.name + '</td>' +
+                        '<td>' + activeProjects + '</td>' +
+                        '<td>' + totalProjects + '</td>' +
+                        '<td>' + (primaryPOC ? primaryPOC.name : '') + '</td>' +
+                        '<td></td><td></td><td></td>' +
+                        '</tr>';
+                } else {
+                    stakeholders.forEach((s, idx) => {
+                        tableRows += '<tr>' +
+                            (idx === 0 ? '<td rowspan="' + stakeholders.length + '">' + account.name + '</td>' +
+                            '<td rowspan="' + stakeholders.length + '">' + activeProjects + '</td>' +
+                            '<td rowspan="' + stakeholders.length + '">' + totalProjects + '</td>' +
+                            '<td rowspan="' + stakeholders.length + '">' + (primaryPOC ? primaryPOC.name : '') + '</td>' : '') +
+                            '<td>' + s.name + '</td>' +
+                            '<td>' + s.email + '</td>' +
+                            '<td>' + (s.isPrimary ? 'Yes' : 'No') + '</td>' +
+                            '</tr>';
+                    });
+                }
+            });
+
+            const html = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel">' +
+                '<head><meta charset="UTF-8">' +
+                '<style>td,th{border:1px solid #999;padding:6px 10px;font-family:Calibri,sans-serif;font-size:11pt;}' +
+                'th{background:#667eea;color:white;font-weight:bold;}' +
+                'tr:nth-child(even){background:#f2f2f2;}</style></head>' +
+                '<body><table>' +
+                '<tr><th>Account</th><th>Active Projects</th><th>Total Projects</th><th>Primary POC</th>' +
+                '<th>Stakeholder Name</th><th>Email</th><th>Is Primary</th></tr>' +
+                tableRows +
+                '</table></body></html>';
+
+            const blob = new Blob([html], { type: 'application/vnd.ms-excel' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'accounts_' + toDateStr(new Date()) + '.xls';
+            a.click();
+            URL.revokeObjectURL(url);
         }
 
         // Add stakeholder to account
