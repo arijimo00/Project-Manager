@@ -580,8 +580,12 @@
                 <input type="text" id="loginUsername" placeholder="Enter your username">
             </div>
             <div class="form-group" style="margin-bottom: 20px;">
-                <label>Firebase Database Key</label>
-                <input type="password" id="firebaseKey" placeholder="Enter your Firebase key">
+                <label>Firebase API Key</label>
+                <input type="password" id="firebaseKey" placeholder="Enter your Firebase API key">
+            </div>
+            <div class="form-group" style="margin-bottom: 20px;">
+                <label>Firebase Database URL</label>
+                <input type="text" id="firebaseDatabaseURL" placeholder="https://your-project.firebaseio.com">
             </div>
             <button class="btn btn-primary" onclick="login()" style="width: 100%; margin-top: 10px;">Login</button>
             <p style="margin-top: 20px; color: #666;">New user? Enter your details to create an account</p>
@@ -869,32 +873,41 @@
         function login() {
             const username = document.getElementById('loginUsername').value;
             const firebaseKey = document.getElementById('firebaseKey').value;
-            
-            if (!username || !firebaseKey) {
-                alert('Please enter both username and Firebase key');
+            const databaseURL = document.getElementById('firebaseDatabaseURL').value.trim();
+
+            if (!username || !firebaseKey || !databaseURL) {
+                alert('Please enter username, Firebase API key, and Database URL');
                 return;
             }
-            
+
+            // Derive project ID from the database URL (e.g. https://my-project.firebaseio.com -> my-project)
+            let projectId = '';
+            try {
+                const url = new URL(databaseURL);
+                projectId = url.hostname.split('.')[0];
+            } catch (e) {
+                alert('Invalid Database URL. Please enter a valid Firebase Realtime Database URL.');
+                return;
+            }
+
             currentUser = {
                 username: username,
                 createdAt: new Date().toISOString()
             };
-            
-            // For demo purposes, we'll create a simple config
-            // In production, you'd parse the actual Firebase config
+
             firebaseConfig = {
                 apiKey: firebaseKey,
-                authDomain: "your-project.firebaseapp.com",
-                databaseURL: "https://your-project.firebaseio.com",
-                projectId: "your-project",
-                storageBucket: "your-project.appspot.com",
-                messagingSenderId: "123456789",
-                appId: "your-app-id"
+                authDomain: projectId + ".firebaseapp.com",
+                databaseURL: databaseURL,
+                projectId: projectId,
+                storageBucket: projectId + ".appspot.com",
+                messagingSenderId: "",
+                appId: ""
             };
-            
+
             localStorage.setItem('currentUser', JSON.stringify(currentUser));
             localStorage.setItem('firebaseConfig', JSON.stringify(firebaseConfig));
-            
+
             initializeFirebase();
             showMainApp();
         }
@@ -928,13 +941,15 @@
                 database.ref('accounts').on('value', (snapshot) => {
                     accounts = snapshot.val() || {};
                     updateAccountsDisplay();
+                    populateDropdowns();
                 });
-                
+
                 database.ref('resources').on('value', (snapshot) => {
                     resources = snapshot.val() || {};
                     updateResourcesDisplay();
+                    populateDropdowns();
                 });
-                
+
                 database.ref('projects').on('value', (snapshot) => {
                     projects = snapshot.val() || {};
                     updateProjectsDisplay();
@@ -1335,6 +1350,11 @@
                 
                 list.appendChild(card);
             });
+        }
+
+        // Update projects display (refresh account cards to show correct active project counts)
+        function updateProjectsDisplay() {
+            updateAccountsDisplay();
         }
 
         // Toggle resource details
