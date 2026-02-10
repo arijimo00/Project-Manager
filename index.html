@@ -2077,6 +2077,11 @@
             }
         }
 
+        // Get a per-user database reference
+        function userRef(path) {
+            return database.ref('users/' + currentUser.username + '/' + path);
+        }
+
         // Show main app
         function showMainApp() {
             document.getElementById('loginScreen').style.display = 'none';
@@ -2088,29 +2093,29 @@
 
         // Load data from Firebase (only called after connection is verified)
         function loadData() {
-            database.ref('accounts').on('value', (snapshot) => {
+            userRef('accounts').on('value', (snapshot) => {
                 accounts = snapshot.val() || {};
                 updateAccountsDisplay();
                 populateDropdowns();
             });
 
-            database.ref('resources').on('value', (snapshot) => {
+            userRef('resources').on('value', (snapshot) => {
                 resources = snapshot.val() || {};
                 updateResourcesDisplay();
                 populateDropdowns();
             });
 
-            database.ref('projects').on('value', (snapshot) => {
+            userRef('projects').on('value', (snapshot) => {
                 projects = snapshot.val() || {};
                 updateProjectsDisplay();
             });
 
-            database.ref('holidays').on('value', (snapshot) => {
+            userRef('holidays').on('value', (snapshot) => {
                 holidays = snapshot.val() || {};
                 updateHolidaysDisplay();
             });
 
-            database.ref('leaves').on('value', (snapshot) => {
+            userRef('leaves').on('value', (snapshot) => {
                 leaves = snapshot.val() || {};
                 updateLeavesDisplay();
             });
@@ -2858,7 +2863,7 @@
                 resources[id][field] = field === 'level' ? parseInt(value) : value;
                 
                 if (database) {
-                    database.ref(`resources/${id}`).update(resources[id]);
+                    userRef('resources/' + id).update(resources[id]);
                 }
                 
                 updateResourcesDisplay();
@@ -2872,7 +2877,7 @@
                 delete resources[id];
                 
                 if (database) {
-                    database.ref(`resources/${id}`).remove();
+                    userRef('resources/' + id).remove();
                 }
                 
                 updateResourcesDisplay();
@@ -2911,7 +2916,7 @@
             };
             
             if (database) {
-                database.ref(`accounts/${id}`).set(accounts[id]);
+                userRef('accounts/' + id).set(accounts[id]);
             }
             
             updateAccountsDisplay();
@@ -2941,7 +2946,7 @@
             };
             
             if (database) {
-                database.ref(`resources/${id}`).set(resources[id]);
+                userRef('resources/' + id).set(resources[id]);
             }
             
             updateResourcesDisplay();
@@ -3014,7 +3019,7 @@
             accounts[editingAccountId].name = newName;
 
             if (database) {
-                database.ref('accounts/' + editingAccountId).set(accounts[editingAccountId]);
+                userRef('accounts/' + editingAccountId).set(accounts[editingAccountId]);
             }
 
             updateAccountsDisplay();
@@ -3030,7 +3035,7 @@
             stakeholders.forEach((s, i) => { s.isPrimary = (i === idx); });
 
             if (database) {
-                database.ref('accounts/' + accountId).set(accounts[accountId]);
+                userRef('accounts/' + accountId).set(accounts[accountId]);
             }
             updateAccountsDisplay();
         }
@@ -3043,7 +3048,7 @@
             stakeholders.splice(idx, 1);
 
             if (database) {
-                database.ref('accounts/' + accountId).set(accounts[accountId]);
+                userRef('accounts/' + accountId).set(accounts[accountId]);
             }
             updateAccountsDisplay();
         }
@@ -3125,7 +3130,7 @@
                 });
                 
                 if (database) {
-                    database.ref(`accounts/${accountId}`).set(accounts[accountId]);
+                    userRef('accounts/' + accountId).set(accounts[accountId]);
                 }
                 
                 updateAccountsDisplay();
@@ -3178,7 +3183,7 @@
             projects[projectId] = project;
             
             if (database) {
-                database.ref(`projects/${projectId}`).set(project);
+                userRef('projects/' + projectId).set(project);
             }
             
             alert('Project saved successfully!');
@@ -3455,7 +3460,7 @@
             holidays[id] = { name: name, date: date };
 
             if (database) {
-                database.ref('holidays/' + id).set(holidays[id]);
+                userRef('holidays/' + id).set(holidays[id]);
             }
 
             updateHolidaysDisplay();
@@ -3469,7 +3474,7 @@
             if (confirm('Delete this holiday?')) {
                 delete holidays[id];
                 if (database) {
-                    database.ref('holidays/' + id).remove();
+                    userRef('holidays/' + id).remove();
                 }
                 updateHolidaysDisplay();
             }
@@ -3522,7 +3527,7 @@
             leaves[id] = { resourceId: resourceId, startDate: startDate, endDate: endDate, reason: reason };
 
             if (database) {
-                database.ref('leaves/' + id).set(leaves[id]);
+                userRef('leaves/' + id).set(leaves[id]);
             }
 
             updateLeavesDisplay();
@@ -3538,7 +3543,7 @@
             if (confirm('Delete this leave entry?')) {
                 delete leaves[id];
                 if (database) {
-                    database.ref('leaves/' + id).remove();
+                    userRef('leaves/' + id).remove();
                 }
                 updateLeavesDisplay();
             }
