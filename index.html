@@ -1686,16 +1686,57 @@
         // Initialize Firebase
         function initializeFirebase() {
             try {
-                // Reuse existing Firebase app if already initialized (e.g. on relaunch)
+                // Delete any existing Firebase app to ensure fresh config is used
                 if (firebase.apps.length > 0) {
-                    database = firebase.app().database();
+                    firebase.app().delete().then(() => {
+                        doFirebaseInit();
+                    }).catch(() => {
+                        doFirebaseInit();
+                    });
                 } else {
-                    firebase.initializeApp(firebaseConfig);
-                    database = firebase.database();
+                    doFirebaseInit();
                 }
-                loadData();
             } catch (error) {
                 console.error('Firebase initialization error:', error);
+                updateConnectionStatus(false);
+                loadDemoData();
+            }
+        }
+
+        function doFirebaseInit() {
+            try {
+                firebase.initializeApp(firebaseConfig);
+                database = firebase.database();
+
+                // Test real connectivity with a one-time read + timeout
+                let resolved = false;
+                const timeout = setTimeout(() => {
+                    if (!resolved) {
+                        resolved = true;
+                        console.warn('Firebase connection timed out — falling back to demo mode.');
+                        updateConnectionStatus(false);
+                        loadDemoData();
+                    }
+                }, 8000);
+
+                database.ref('.info/connected').once('value').then((snap) => {
+                    if (!resolved) {
+                        resolved = true;
+                        clearTimeout(timeout);
+                        updateConnectionStatus(true);
+                        loadData();
+                    }
+                }).catch((err) => {
+                    if (!resolved) {
+                        resolved = true;
+                        clearTimeout(timeout);
+                        console.error('Firebase connection failed:', err);
+                        updateConnectionStatus(false);
+                        loadDemoData();
+                    }
+                });
+            } catch (error) {
+                console.error('Firebase init error:', error);
                 updateConnectionStatus(false);
                 loadDemoData();
             }
@@ -1710,52 +1751,34 @@
             generateSerialNumber();
         }
 
-        // Load data from Firebase or demo data
+        // Load data from Firebase (only called after connection is verified)
         function loadData() {
-            if (database) {
-                let connectedOnce = false;
+            database.ref('accounts').on('value', (snapshot) => {
+                accounts = snapshot.val() || {};
+                updateAccountsDisplay();
+                populateDropdowns();
+            });
 
-                // Use first successful callback to confirm real connectivity
-                database.ref('accounts').on('value', (snapshot) => {
-                    if (!connectedOnce) {
-                        connectedOnce = true;
-                        updateConnectionStatus(true);
-                    }
-                    accounts = snapshot.val() || {};
-                    updateAccountsDisplay();
-                    populateDropdowns();
-                }, (error) => {
-                    console.error('Firebase read error (accounts):', error);
-                    if (!connectedOnce) {
-                        updateConnectionStatus(false);
-                        loadDemoData();
-                    }
-                });
+            database.ref('resources').on('value', (snapshot) => {
+                resources = snapshot.val() || {};
+                updateResourcesDisplay();
+                populateDropdowns();
+            });
 
-                database.ref('resources').on('value', (snapshot) => {
-                    resources = snapshot.val() || {};
-                    updateResourcesDisplay();
-                    populateDropdowns();
-                });
+            database.ref('projects').on('value', (snapshot) => {
+                projects = snapshot.val() || {};
+                updateProjectsDisplay();
+            });
 
-                database.ref('projects').on('value', (snapshot) => {
-                    projects = snapshot.val() || {};
-                    updateProjectsDisplay();
-                });
+            database.ref('holidays').on('value', (snapshot) => {
+                holidays = snapshot.val() || {};
+                updateHolidaysDisplay();
+            });
 
-                database.ref('holidays').on('value', (snapshot) => {
-                    holidays = snapshot.val() || {};
-                    updateHolidaysDisplay();
-                });
-
-                database.ref('leaves').on('value', (snapshot) => {
-                    leaves = snapshot.val() || {};
-                    updateLeavesDisplay();
-                });
-            } else {
-                updateConnectionStatus(false);
-                loadDemoData();
-            }
+            database.ref('leaves').on('value', (snapshot) => {
+                leaves = snapshot.val() || {};
+                updateLeavesDisplay();
+            });
         }
 
         // Load demo data
