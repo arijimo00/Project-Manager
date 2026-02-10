@@ -190,6 +190,134 @@
             min-height: 100px;
         }
 
+        /* Checkbox Multi-Select Module */
+        .checkbox-multiselect {
+            position: relative;
+        }
+
+        .checkbox-multiselect-trigger {
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            background: #f8f9fa;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            min-height: 44px;
+            user-select: none;
+        }
+
+        .checkbox-multiselect-trigger:hover {
+            border-color: #667eea;
+        }
+
+        .checkbox-multiselect-trigger.active {
+            border-color: #667eea;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .checkbox-multiselect-trigger .arrow {
+            font-size: 10px;
+            color: #666;
+            transition: transform 0.3s;
+        }
+
+        .checkbox-multiselect-trigger.active .arrow {
+            transform: rotate(180deg);
+        }
+
+        .checkbox-multiselect-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 2px solid #667eea;
+            border-top: none;
+            border-radius: 0 0 8px 8px;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 100;
+            display: none;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .checkbox-multiselect-dropdown.open {
+            display: block;
+            animation: slideDown 0.2s ease;
+        }
+
+        .checkbox-option {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 15px;
+            cursor: pointer;
+            transition: background 0.2s;
+            font-size: 14px;
+        }
+
+        .checkbox-option:hover {
+            background: #f0f0ff;
+        }
+
+        .checkbox-option input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            accent-color: #667eea;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+
+        .checkbox-option label {
+            cursor: pointer;
+            font-weight: 400;
+            color: #333;
+            flex: 1;
+        }
+
+        .selected-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 8px;
+        }
+
+        .selected-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 10px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .selected-tag .remove-tag {
+            cursor: pointer;
+            font-size: 14px;
+            line-height: 1;
+            opacity: 0.8;
+            transition: opacity 0.2s;
+        }
+
+        .selected-tag .remove-tag:hover {
+            opacity: 1;
+        }
+
+        .checkbox-multiselect-empty {
+            padding: 15px;
+            text-align: center;
+            color: #999;
+            font-size: 13px;
+        }
+
         /* Account Cards */
         .account-grid {
             display: grid;
@@ -520,16 +648,30 @@
                             
                             <div class="form-group">
                                 <label>Primary Stakeholder</label>
-                                <select id="primaryStakeholder">
-                                    <option value="">Select Primary Stakeholder</option>
-                                </select>
+                                <div class="checkbox-multiselect" id="primaryStakeholderModule">
+                                    <div class="checkbox-multiselect-trigger" onclick="toggleMultiSelect('primaryStakeholder')">
+                                        <span id="primaryStakeholderPlaceholder">Select Primary Stakeholders</span>
+                                        <span class="arrow">&#9660;</span>
+                                    </div>
+                                    <div class="checkbox-multiselect-dropdown" id="primaryStakeholderDropdown">
+                                        <div class="checkbox-multiselect-empty">Select an account first</div>
+                                    </div>
+                                    <div class="selected-tags" id="primaryStakeholderTags"></div>
+                                </div>
                             </div>
-                            
+
                             <div class="form-group">
                                 <label>Secondary Stakeholders</label>
-                                <select id="secondaryStakeholders" class="multi-select" multiple>
-                                    <option value="">Select Secondary Stakeholders</option>
-                                </select>
+                                <div class="checkbox-multiselect" id="secondaryStakeholdersModule">
+                                    <div class="checkbox-multiselect-trigger" onclick="toggleMultiSelect('secondaryStakeholders')">
+                                        <span id="secondaryStakeholdersPlaceholder">Select Secondary Stakeholders</span>
+                                        <span class="arrow">&#9660;</span>
+                                    </div>
+                                    <div class="checkbox-multiselect-dropdown" id="secondaryStakeholdersDropdown">
+                                        <div class="checkbox-multiselect-empty">Select an account first</div>
+                                    </div>
+                                    <div class="selected-tags" id="secondaryStakeholdersTags"></div>
+                                </div>
                             </div>
                             
                             <div class="form-group">
@@ -544,8 +686,16 @@
                             
                             <div class="form-group">
                                 <label>Project Resources</label>
-                                <select id="projectResources" class="multi-select" multiple onchange="calculateTimeline()">
-                                </select>
+                                <div class="checkbox-multiselect" id="projectResourcesModule">
+                                    <div class="checkbox-multiselect-trigger" onclick="toggleMultiSelect('projectResources')">
+                                        <span id="projectResourcesPlaceholder">Select Resources</span>
+                                        <span class="arrow">&#9660;</span>
+                                    </div>
+                                    <div class="checkbox-multiselect-dropdown" id="projectResourcesDropdown">
+                                        <div class="checkbox-multiselect-empty">No resources available</div>
+                                    </div>
+                                    <div class="selected-tags" id="projectResourcesTags"></div>
+                                </div>
                             </div>
                             
                             <div class="form-group">
@@ -847,7 +997,7 @@
             document.getElementById('userDropdown').classList.toggle('active');
         }
 
-        // Close dropdown when clicking outside
+        // Close user dropdown when clicking outside
         document.addEventListener('click', function(event) {
             if (!event.target.closest('.user-section')) {
                 document.getElementById('userDropdown').classList.remove('active');
@@ -886,64 +1036,164 @@
             document.getElementById('serialNumber').value = serial;
         }
 
-        // Update stakeholders dropdown
+        // Toggle multi-select dropdown
+        function toggleMultiSelect(moduleId) {
+            const dropdown = document.getElementById(moduleId + 'Dropdown');
+            const trigger = dropdown.previousElementSibling;
+            const isOpen = dropdown.classList.contains('open');
+
+            // Close all other open dropdowns
+            document.querySelectorAll('.checkbox-multiselect-dropdown.open').forEach(d => {
+                d.classList.remove('open');
+                d.previousElementSibling.classList.remove('active');
+            });
+
+            if (!isOpen) {
+                dropdown.classList.add('open');
+                trigger.classList.add('active');
+            }
+        }
+
+        // Close multi-select dropdowns when clicking outside
+        document.addEventListener('click', function(event) {
+            if (!event.target.closest('.checkbox-multiselect')) {
+                document.querySelectorAll('.checkbox-multiselect-dropdown.open').forEach(d => {
+                    d.classList.remove('open');
+                    d.previousElementSibling.classList.remove('active');
+                });
+            }
+        });
+
+        // Get checked values from a checkbox multi-select
+        function getCheckedValues(moduleId) {
+            const checkboxes = document.querySelectorAll(`#${moduleId}Dropdown input[type="checkbox"]:checked`);
+            return Array.from(checkboxes).map(cb => cb.value);
+        }
+
+        // Update the selected-tags display for a multi-select module
+        function updateSelectedTags(moduleId, labelMap) {
+            const tagsContainer = document.getElementById(moduleId + 'Tags');
+            const values = getCheckedValues(moduleId);
+            const placeholder = document.getElementById(moduleId + 'Placeholder');
+
+            if (values.length === 0) {
+                tagsContainer.innerHTML = '';
+                if (moduleId === 'projectResources') {
+                    placeholder.textContent = 'Select Resources';
+                } else if (moduleId === 'primaryStakeholder') {
+                    placeholder.textContent = 'Select Primary Stakeholders';
+                } else {
+                    placeholder.textContent = 'Select Secondary Stakeholders';
+                }
+            } else {
+                placeholder.textContent = values.length + ' selected';
+                tagsContainer.innerHTML = values.map(v => {
+                    const label = labelMap[v] || v;
+                    return `<span class="selected-tag">${label}<span class="remove-tag" onclick="event.stopPropagation(); uncheckOption('${moduleId}', '${v}')">&times;</span></span>`;
+                }).join('');
+            }
+        }
+
+        // Uncheck an option and refresh tags
+        function uncheckOption(moduleId, value) {
+            const checkbox = document.querySelector(`#${moduleId}Dropdown input[type="checkbox"][value="${value}"]`);
+            if (checkbox) {
+                checkbox.checked = false;
+                checkbox.dispatchEvent(new Event('change'));
+            }
+        }
+
+        // Build checkbox options inside a dropdown
+        function buildCheckboxOptions(moduleId, items, onChangeFn) {
+            const dropdown = document.getElementById(moduleId + 'Dropdown');
+            if (items.length === 0) {
+                dropdown.innerHTML = '<div class="checkbox-multiselect-empty">No options available</div>';
+                return;
+            }
+            dropdown.innerHTML = items.map(item =>
+                `<div class="checkbox-option">
+                    <input type="checkbox" id="${moduleId}_${item.value}" value="${item.value}" onchange="${onChangeFn}">
+                    <label for="${moduleId}_${item.value}">${item.label}</label>
+                </div>`
+            ).join('');
+        }
+
+        // Update stakeholders checkboxes
         function updateStakeholders() {
             const accountId = document.getElementById('account').value;
-            const primarySelect = document.getElementById('primaryStakeholder');
-            const secondarySelect = document.getElementById('secondaryStakeholders');
-            
-            primarySelect.innerHTML = '<option value="">Select Primary Stakeholder</option>';
-            secondarySelect.innerHTML = '';
-            
+            const primaryDropdown = document.getElementById('primaryStakeholderDropdown');
+            const secondaryDropdown = document.getElementById('secondaryStakeholdersDropdown');
+
+            // Reset
+            document.getElementById('primaryStakeholderTags').innerHTML = '';
+            document.getElementById('secondaryStakeholdersTags').innerHTML = '';
+            document.getElementById('primaryStakeholderPlaceholder').textContent = 'Select Primary Stakeholders';
+            document.getElementById('secondaryStakeholdersPlaceholder').textContent = 'Select Secondary Stakeholders';
+
             if (accountId && accounts[accountId]) {
                 const stakeholders = accounts[accountId].stakeholders || [];
-                
-                stakeholders.forEach((stakeholder, index) => {
-                    // Primary stakeholder dropdown
-                    const option1 = document.createElement('option');
-                    option1.value = index;
-                    option1.textContent = stakeholder.name;
-                    primarySelect.appendChild(option1);
-                    
-                    // Secondary stakeholders multi-select
-                    const option2 = document.createElement('option');
-                    option2.value = index;
-                    option2.textContent = stakeholder.name;
-                    secondarySelect.appendChild(option2);
-                });
-                
+
+                const items = stakeholders.map((s, index) => ({
+                    value: String(index),
+                    label: s.name
+                }));
+
+                buildCheckboxOptions('primaryStakeholder', items, 'onPrimaryStakeholderChange()');
+                buildCheckboxOptions('secondaryStakeholders', items, 'onSecondaryStakeholderChange()');
+
                 // Auto-fill POC
                 const primaryPOC = stakeholders.find(s => s.isPrimary);
                 if (primaryPOC) {
                     document.getElementById('accountPOC').value = primaryPOC.name + ' - ' + primaryPOC.email;
                 }
+            } else {
+                primaryDropdown.innerHTML = '<div class="checkbox-multiselect-empty">Select an account first</div>';
+                secondaryDropdown.innerHTML = '<div class="checkbox-multiselect-empty">Select an account first</div>';
             }
+        }
+
+        // Callback when primary stakeholder checkboxes change
+        function onPrimaryStakeholderChange() {
+            const accountId = document.getElementById('account').value;
+            const stakeholders = (accountId && accounts[accountId]) ? accounts[accountId].stakeholders || [] : [];
+            const labelMap = {};
+            stakeholders.forEach((s, i) => { labelMap[String(i)] = s.name; });
+            updateSelectedTags('primaryStakeholder', labelMap);
+        }
+
+        // Callback when secondary stakeholder checkboxes change
+        function onSecondaryStakeholderChange() {
+            const accountId = document.getElementById('account').value;
+            const stakeholders = (accountId && accounts[accountId]) ? accounts[accountId].stakeholders || [] : [];
+            const labelMap = {};
+            stakeholders.forEach((s, i) => { labelMap[String(i)] = s.name; });
+            updateSelectedTags('secondaryStakeholders', labelMap);
         }
 
         // Calculate suggested timeline
         function calculateTimeline() {
             const bandwidth = parseInt(document.getElementById('bandwidth').value) || 0;
-            const selectedResources = Array.from(document.getElementById('projectResources').selectedOptions);
-            
-            if (bandwidth && selectedResources.length > 0) {
+            const selectedResourceIds = getCheckedValues('projectResources');
+
+            if (bandwidth && selectedResourceIds.length > 0) {
                 // Calculate based on resource efficiency and distribution
                 let totalEfficiency = 0;
-                selectedResources.forEach(option => {
-                    const resource = resources[option.value];
+                selectedResourceIds.forEach(id => {
+                    const resource = resources[id];
                     if (resource) {
                         const efficiency = 1 + (resource.level * 0.2);
                         totalEfficiency += efficiency;
                     }
                 });
-                
+
                 // Calculate days needed with resource distribution
                 const effectiveDays = Math.ceil(bandwidth / totalEfficiency) + 1; // +1 day buffer
-                
+
                 // Suggest timeline
                 const startDate = new Date();
                 const endDate = new Date(startDate);
                 endDate.setDate(endDate.getDate() + effectiveDays);
-                
+
                 document.getElementById('deliveryTimeline').value = endDate.toISOString().split('T')[0];
                 document.getElementById('suggestedTimeline').textContent = `Suggested: ${effectiveDays} days with selected resources`;
             }
@@ -951,27 +1201,38 @@
 
         // Populate dropdowns
         function populateDropdowns() {
-            // Populate accounts dropdown
+            // Populate accounts dropdown (stays as a regular select)
             const accountSelect = document.getElementById('account');
             accountSelect.innerHTML = '<option value="">Select Account</option>';
-            
+
             Object.entries(accounts).forEach(([id, account]) => {
                 const option = document.createElement('option');
                 option.value = id;
                 option.textContent = account.name;
                 accountSelect.appendChild(option);
             });
-            
-            // Populate resources dropdown
-            const resourceSelect = document.getElementById('projectResources');
-            resourceSelect.innerHTML = '';
-            
+
+            // Populate resources checkbox multi-select
+            const items = Object.entries(resources).map(([id, resource]) => ({
+                value: id,
+                label: `${resource.name} (${resource.title})`
+            }));
+
+            buildCheckboxOptions('projectResources', items, 'onProjectResourcesChange()');
+
+            // Reset tags
+            document.getElementById('projectResourcesTags').innerHTML = '';
+            document.getElementById('projectResourcesPlaceholder').textContent = 'Select Resources';
+        }
+
+        // Callback when project resources checkboxes change
+        function onProjectResourcesChange() {
+            const labelMap = {};
             Object.entries(resources).forEach(([id, resource]) => {
-                const option = document.createElement('option');
-                option.value = id;
-                option.textContent = `${resource.name} (${resource.title})`;
-                resourceSelect.appendChild(option);
+                labelMap[id] = resource.name;
             });
+            updateSelectedTags('projectResources', labelMap);
+            calculateTimeline();
         }
 
         // Update accounts display
@@ -1215,11 +1476,11 @@
             const project = {
                 serialNumber: document.getElementById('serialNumber').value,
                 account: document.getElementById('account').value,
-                primaryStakeholder: document.getElementById('primaryStakeholder').value,
-                secondaryStakeholders: Array.from(document.getElementById('secondaryStakeholders').selectedOptions).map(o => o.value),
+                primaryStakeholder: getCheckedValues('primaryStakeholder'),
+                secondaryStakeholders: getCheckedValues('secondaryStakeholders'),
                 accountPOC: document.getElementById('accountPOC').value,
                 projectName: document.getElementById('projectName').value,
-                projectResources: Array.from(document.getElementById('projectResources').selectedOptions).map(o => o.value),
+                projectResources: getCheckedValues('projectResources'),
                 bandwidth: document.getElementById('bandwidth').value,
                 status: document.getElementById('status').value,
                 deliveryType: document.getElementById('deliveryType').value,
@@ -1245,6 +1506,17 @@
         function clearForm() {
             document.getElementById('dashboardForm').reset();
             generateSerialNumber();
+
+            // Reset all checkbox multi-selects
+            document.querySelectorAll('.checkbox-multiselect-dropdown input[type="checkbox"]').forEach(cb => {
+                cb.checked = false;
+            });
+            ['primaryStakeholder', 'secondaryStakeholders', 'projectResources'].forEach(moduleId => {
+                document.getElementById(moduleId + 'Tags').innerHTML = '';
+            });
+            document.getElementById('primaryStakeholderPlaceholder').textContent = 'Select Primary Stakeholders';
+            document.getElementById('secondaryStakeholdersPlaceholder').textContent = 'Select Secondary Stakeholders';
+            document.getElementById('projectResourcesPlaceholder').textContent = 'Select Resources';
         }
 
         // Update delivery fields based on type
