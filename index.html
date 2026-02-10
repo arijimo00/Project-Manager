@@ -698,6 +698,42 @@
             background: #f0f0f0;
         }
 
+        .gantt-dayoff {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .gantt-dayoff-weekend {
+            background: rgba(0, 0, 0, 0.04);
+        }
+
+        .gantt-dayoff-holiday {
+            background: rgba(239, 83, 80, 0.10);
+        }
+
+        .gantt-dayoff-leave {
+            background: rgba(255, 167, 38, 0.12);
+        }
+
+        .gantt-dayoff-labels {
+            position: relative;
+            margin-left: 200px;
+            height: 0;
+        }
+
+        .gantt-dayoff-flag {
+            position: absolute;
+            top: -14px;
+            font-size: 8px;
+            font-weight: 600;
+            color: #c2185b;
+            transform: translateX(-50%);
+            white-space: nowrap;
+        }
+
         .gantt-tooltip {
             position: fixed;
             background: #1a1a2e;
@@ -843,6 +879,45 @@
         .login-box h2 {
             margin-bottom: 30px;
             color: #1a1a2e;
+        }
+
+        /* Export Modal */
+        .export-option {
+            background: #f8f9fa;
+            border: 1px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 18px;
+            margin-bottom: 15px;
+            transition: border-color 0.2s;
+        }
+
+        .export-option:hover {
+            border-color: #667eea;
+        }
+
+        .export-option-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .export-option-title {
+            font-weight: 600;
+            font-size: 15px;
+            color: #1a1a2e;
+            margin-bottom: 4px;
+        }
+
+        .export-option-desc {
+            font-size: 13px;
+            color: #666;
+        }
+
+        .export-date-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
         }
 
         /* Holidays & Leaves */
@@ -1189,6 +1264,12 @@
                     <p>View project timelines and resource allocation</p>
                 </div>
 
+                <div style="margin-bottom: 20px;">
+                    <button class="btn btn-primary" onclick="showModal('exportModal')">
+                        Export Data
+                    </button>
+                </div>
+
                 <div class="gantt-container" id="ganttContainer">
                     <!-- Rendered dynamically by renderGanttChart() -->
                 </div>
@@ -1326,6 +1407,55 @@
             <div style="display: flex; gap: 15px; margin-top: 20px;">
                 <button class="btn btn-primary" onclick="saveLeave()">Save Leave</button>
                 <button class="btn btn-secondary" onclick="closeModal('leaveModal')">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Export Modal -->
+    <div id="exportModal" class="modal">
+        <div class="modal-content" style="max-width: 550px;">
+            <h3 style="margin-bottom: 20px;">Export Data</h3>
+
+            <!-- Option 1: Active Tracks -->
+            <div class="export-option">
+                <div class="export-option-header">
+                    <div>
+                        <div class="export-option-title">Active Tracks</div>
+                        <div class="export-option-desc">Export all projects that have not been delivered yet, with full details.</div>
+                    </div>
+                    <button class="btn btn-primary" onclick="exportActiveTracks()">Download CSV</button>
+                </div>
+            </div>
+
+            <!-- Option 2: Date Range Log -->
+            <div class="export-option">
+                <div class="export-option-header" style="flex-direction: column; align-items: stretch;">
+                    <div style="margin-bottom: 12px;">
+                        <div class="export-option-title">Full Log (Date Range)</div>
+                        <div class="export-option-desc">Export all tracks (delivered and undelivered) within a date range based on delivery date.</div>
+                    </div>
+                    <div class="export-date-row">
+                        <div class="form-group">
+                            <label>Start Date</label>
+                            <input type="date" id="exportStartDate">
+                        </div>
+                        <div class="form-group">
+                            <label>End Date</label>
+                            <input type="date" id="exportEndDate" disabled>
+                        </div>
+                    </div>
+                    <div style="margin: 8px 0 12px;">
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px; font-weight: 500; color: #333;">
+                            <input type="checkbox" id="exportNoEndDate" onchange="toggleExportEndDate()" style="width:16px;height:16px;accent-color:#667eea;">
+                            All delivery dates after start date (no end date limit)
+                        </label>
+                    </div>
+                    <button class="btn btn-primary" onclick="exportDateRangeLog()" style="align-self: flex-end;">Download CSV</button>
+                </div>
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; margin-top: 15px;">
+                <button class="btn btn-secondary" onclick="closeModal('exportModal')">Close</button>
             </div>
         </div>
     </div>
@@ -1698,6 +1828,57 @@
             updateSelectedTags('secondaryStakeholders', labelMap);
         }
 
+        // Helper: get a Set of holiday date strings (YYYY-MM-DD)
+        function getHolidaySet() {
+            const set = new Set();
+            Object.values(holidays).forEach(h => { set.add(h.date); });
+            return set;
+        }
+
+        // Helper: check if a date falls within any leave for given resource IDs
+        function isResourceOnLeave(dateStr, resourceIds) {
+            return Object.values(leaves).some(lv =>
+                resourceIds.includes(lv.resourceId) &&
+                dateStr >= lv.startDate && dateStr <= lv.endDate
+            );
+        }
+
+        // Helper: format Date to YYYY-MM-DD
+        function toDateStr(d) {
+            return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+        }
+
+        // Helper: check if a date is a non-working day (weekend, holiday, or all selected resources on leave)
+        function isNonWorkingDay(date, holidaySet, resourceIds) {
+            const day = date.getDay();
+            if (day === 0 || day === 6) return true; // Sunday or Saturday
+            const dateStr = toDateStr(date);
+            if (holidaySet.has(dateStr)) return true;
+            // If resource IDs provided, check if ALL resources are on leave that day
+            if (resourceIds && resourceIds.length > 0) {
+                const allOnLeave = resourceIds.every(rid =>
+                    Object.values(leaves).some(lv =>
+                        lv.resourceId === rid && dateStr >= lv.startDate && dateStr <= lv.endDate
+                    )
+                );
+                if (allOnLeave) return true;
+            }
+            return false;
+        }
+
+        // Calculate delivery date by adding working days from a start date
+        function addWorkingDays(startDate, workingDaysNeeded, holidaySet, resourceIds) {
+            const result = new Date(startDate);
+            let added = 0;
+            while (added < workingDaysNeeded) {
+                result.setDate(result.getDate() + 1);
+                if (!isNonWorkingDay(result, holidaySet, resourceIds)) {
+                    added++;
+                }
+            }
+            return result;
+        }
+
         // Calculate suggested timeline
         function calculateTimeline() {
             const bandwidth = parseInt(document.getElementById('bandwidth').value) || 0;
@@ -1714,21 +1895,30 @@
                     }
                 });
 
-                // Calculate days needed with resource distribution
-                const effectiveDays = Math.ceil(bandwidth / totalEfficiency) + 1; // +1 day buffer
+                // Calculate working days needed with resource distribution
+                const effectiveWorkingDays = Math.ceil(bandwidth / totalEfficiency) + 1; // +1 day buffer
 
-                // Set starting date to today and delivery date based on calculation
-                const startDate = new Date();
-                const endDate = new Date(startDate);
-                endDate.setDate(endDate.getDate() + effectiveDays);
+                // Set starting date to today (skip to next working day if today is off)
+                const holidaySet = getHolidaySet();
+                let startDate = new Date();
+                while (isNonWorkingDay(startDate, holidaySet, selectedResourceIds)) {
+                    startDate.setDate(startDate.getDate() + 1);
+                }
 
-                const startISO = startDate.toISOString().split('T')[0];
-                const endISO = endDate.toISOString().split('T')[0];
+                // Calculate end date by walking forward through working days only
+                const endDate = addWorkingDays(startDate, effectiveWorkingDays, holidaySet, selectedResourceIds);
+
+                // Count total calendar days for display
+                const calendarDays = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
+
+                const startISO = toDateStr(startDate);
+                const endISO = toDateStr(endDate);
 
                 // Update single delivery fields
                 document.getElementById('startingDate').value = startISO;
                 document.getElementById('deliveryTimeline').value = endISO;
-                document.getElementById('suggestedTimeline').textContent = `Suggested: ${effectiveDays} days with selected resources`;
+                document.getElementById('suggestedTimeline').textContent =
+                    `Suggested: ${effectiveWorkingDays} working days (${calendarDays} calendar days) — excludes weekends, holidays & leaves`;
 
                 // If multi-phase, auto-fill first phase dates
                 const firstPhase = document.querySelector('#phasesContainer .phase-row');
@@ -2003,6 +2193,36 @@
                 `<div class="gantt-grid-line" style="left:${m.left}px;"></div>`
             ).join('');
 
+            // Build day-off shading (weekends, holidays, leaves)
+            const holidaySet = getHolidaySet();
+            let dayOffHTML = '';
+            let dayOffHeaderHTML = '';
+            const iterDate = new Date(minDate);
+            while (iterDate <= maxDate) {
+                const dayOffset = ((iterDate - minDate) / (1000 * 60 * 60 * 24)) * dayWidth;
+                const dateStr = toDateStr(iterDate);
+                const dayOfWeek = iterDate.getDay();
+
+                if (dayOfWeek === 0 || dayOfWeek === 6) {
+                    dayOffHTML += `<div class="gantt-dayoff gantt-dayoff-weekend" style="left:${dayOffset}px;width:${dayWidth}px;"></div>`;
+                } else if (holidaySet.has(dateStr)) {
+                    dayOffHTML += `<div class="gantt-dayoff gantt-dayoff-holiday" style="left:${dayOffset}px;width:${dayWidth}px;"></div>`;
+                    // Show flag on header for holidays (only if wide enough to see)
+                    if (dayWidth >= 6) {
+                        const hName = Object.values(holidays).find(h => h.date === dateStr);
+                        dayOffHeaderHTML += `<div class="gantt-dayoff-flag" style="left:${dayOffset + dayWidth / 2}px;" title="${hName ? hName.name : 'Holiday'}">H</div>`;
+                    }
+                }
+
+                // Check for leaves on this day (any resource)
+                const leavesOnDay = Object.values(leaves).filter(lv => dateStr >= lv.startDate && dateStr <= lv.endDate);
+                if (leavesOnDay.length > 0 && dayOfWeek !== 0 && dayOfWeek !== 6 && !holidaySet.has(dateStr)) {
+                    dayOffHTML += `<div class="gantt-dayoff gantt-dayoff-leave" style="left:${dayOffset}px;width:${dayWidth}px;"></div>`;
+                }
+
+                iterDate.setDate(iterDate.getDate() + 1);
+            }
+
             // Today line
             const today = new Date();
             let todayLineHTML = '';
@@ -2024,8 +2244,15 @@
 
                     const startStr = bar.start.toLocaleDateString();
                     const endStr = bar.end.toLocaleDateString();
-                    const days = Math.ceil((bar.end - bar.start) / (1000 * 60 * 60 * 24));
-                    const tooltipData = `${bar.name}${bar.isPhase ? ' - ' + bar.label : ''}|${startStr} - ${endStr}|${days} days | ${bar.status.replace('-', ' ')}`;
+                    const totalCalDays = Math.ceil((bar.end - bar.start) / (1000 * 60 * 60 * 24));
+                    // Count working days for tooltip
+                    let workDays = 0;
+                    const countDate = new Date(bar.start);
+                    while (countDate <= bar.end) {
+                        if (!isNonWorkingDay(countDate, holidaySet, [])) workDays++;
+                        countDate.setDate(countDate.getDate() + 1);
+                    }
+                    const tooltipData = `${bar.name}${bar.isPhase ? ' - ' + bar.label : ''}|${startStr} - ${endStr}|${workDays} working days (${totalCalDays} cal) | ${bar.status.replace('-', ' ')}`;
 
                     barsHTML += `<div class="gantt-bar ${statusClass}${phaseClass}" style="left:${startOffset}px;width:${barWidth}px;" onmouseenter="showGanttTooltip(event, '${tooltipData.replace(/'/g, "\\'")}')" onmouseleave="hideGanttTooltip()">${barLabel}</div>`;
                 });
@@ -2037,14 +2264,14 @@
                             <div class="project-account">${proj.account}</div>
                         </div>
                         <div class="gantt-row-bars" style="width:${chartWidth}px;min-width:${chartWidth}px;">
-                            <div class="gantt-grid-lines">${gridLinesHTML}${todayLineHTML}</div>
+                            <div class="gantt-grid-lines">${gridLinesHTML}${dayOffHTML}${todayLineHTML}</div>
                             ${barsHTML}
                         </div>
                     </div>
                 `;
             });
 
-            // Status legend
+            // Status legend + day-off legend
             const statusColors = [
                 { label: 'Received', cls: 'status-received' },
                 { label: 'First Response', cls: 'status-first-response' },
@@ -2054,18 +2281,22 @@
                 { label: 'On Pause', cls: 'status-on-pause' }
             ];
             const legendHTML = statusColors.map(s => {
-                const div = document.createElement('div');
-                div.className = 'gantt-bar ' + s.cls;
-                // We need the computed background; use a simple mapping instead
                 return `<div class="gantt-legend-item"><div class="gantt-legend-color gantt-bar ${s.cls}" style="width:12px;height:12px;position:static;border-radius:3px;"></div>${s.label}</div>`;
             }).join('');
+
+            const dayOffLegendHTML = `
+                <div class="gantt-legend-item"><div style="width:12px;height:12px;border-radius:3px;background:rgba(0,0,0,0.06);border:1px solid #ddd;"></div>Weekend</div>
+                <div class="gantt-legend-item"><div style="width:12px;height:12px;border-radius:3px;background:rgba(239,83,80,0.15);border:1px solid #ef9a9a;"></div>Holiday</div>
+                <div class="gantt-legend-item"><div style="width:12px;height:12px;border-radius:3px;background:rgba(255,167,38,0.18);border:1px solid #ffcc80;"></div>Leave</div>
+            `;
 
             container.innerHTML = `
                 <div class="gantt-header">
                     <h3>Project Timeline</h3>
-                    <div class="gantt-legend">${legendHTML}</div>
+                    <div class="gantt-legend">${legendHTML}${dayOffLegendHTML}</div>
                 </div>
                 <div class="gantt-chart">
+                    <div class="gantt-dayoff-labels" style="width:${chartWidth}px;min-width:${chartWidth}px;">${dayOffHeaderHTML}</div>
                     <div class="gantt-timeline-header" style="width:${chartWidth}px;min-width:${chartWidth}px;">${monthLabelsHTML}</div>
                     ${rowsHTML}
                 </div>
@@ -2354,6 +2585,161 @@
             rows.forEach((row, index) => {
                 row.querySelector('.phase-label').textContent = 'Phase ' + (index + 1);
             });
+        }
+
+        // Toggle export end date field
+        function toggleExportEndDate() {
+            const checked = document.getElementById('exportNoEndDate').checked;
+            const endInput = document.getElementById('exportEndDate');
+            endInput.disabled = checked;
+            if (checked) endInput.value = '';
+        }
+
+        // Helper: get project delivery dates (returns {startDate, endDate} or array for multi-phase)
+        function getProjectDates(p) {
+            const dates = [];
+            if (p.deliveryType === 'multi' && p.delivery && p.delivery.phases) {
+                p.delivery.phases.forEach(phase => {
+                    if (phase.startingDate || phase.deliveryDate) {
+                        dates.push({ startDate: phase.startingDate || '', endDate: phase.deliveryDate || '', phase: phase.phase });
+                    }
+                });
+            } else if (p.delivery) {
+                dates.push({ startDate: p.delivery.startingDate || '', endDate: p.delivery.deliveryDate || '', phase: null });
+            } else {
+                // Legacy format
+                dates.push({ startDate: p.createdAt ? p.createdAt.split('T')[0] : '', endDate: p.deliveryTimeline || '', phase: null });
+            }
+            return dates;
+        }
+
+        // Helper: resolve resource names from IDs array
+        function resolveResourceNames(ids) {
+            if (!ids || !Array.isArray(ids)) return '';
+            return ids.map(id => resources[id] ? resources[id].name : id).join(', ');
+        }
+
+        // Helper: resolve stakeholder names from index array
+        function resolveStakeholderNames(indices, accountId) {
+            if (!indices || !Array.isArray(indices)) return '';
+            const stakeholders = (accountId && accounts[accountId]) ? accounts[accountId].stakeholders || [] : [];
+            return indices.map(i => {
+                const s = stakeholders[parseInt(i)];
+                return s ? s.name : i;
+            }).join(', ');
+        }
+
+        // Helper: build a CSV row from a project entry
+        function buildProjectCSVRow(id, p, dateInfo) {
+            const accountName = (p.account && accounts[p.account]) ? accounts[p.account].name : '';
+            const primaryNames = resolveStakeholderNames(p.primaryStakeholder, p.account);
+            const secondaryNames = resolveStakeholderNames(p.secondaryStakeholders, p.account);
+            const resourceNames = resolveResourceNames(p.projectResources);
+            const statusLabel = (p.status || '').replace(/-/g, ' ');
+            const phaseLabel = dateInfo.phase ? 'Phase ' + dateInfo.phase : (p.deliveryType === 'multi' ? 'Multi-phase' : 'Single');
+
+            return [
+                p.serialNumber || '',
+                accountName,
+                p.projectName || '',
+                primaryNames,
+                secondaryNames,
+                p.accountPOC || '',
+                resourceNames,
+                p.bandwidth || '',
+                statusLabel,
+                phaseLabel,
+                dateInfo.startDate,
+                dateInfo.endDate,
+                p.draupCC || '',
+                (p.notes || '').replace(/"/g, '""'),
+                p.createdBy || '',
+                p.createdAt ? p.createdAt.split('T')[0] : ''
+            ];
+        }
+
+        // CSV header row
+        function getCSVHeader() {
+            return ['Serial Number', 'Account', 'Project Name', 'Primary Stakeholders', 'Secondary Stakeholders',
+                    'Account POC', 'Resources', 'Bandwidth (days)', 'Status', 'Delivery Type',
+                    'Start Date', 'Delivery Date', 'Draup CC SR No', 'Notes', 'Created By', 'Created At'];
+        }
+
+        // Helper: convert rows array to CSV string and trigger download
+        function downloadCSV(rows, filename) {
+            const header = getCSVHeader();
+            const csvContent = [header, ...rows].map(row =>
+                row.map(cell => '"' + String(cell).replace(/"/g, '""') + '"').join(',')
+            ).join('\n');
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // Export Option 1: Active tracks (not delivered)
+        function exportActiveTracks() {
+            const rows = [];
+            Object.entries(projects).forEach(([id, p]) => {
+                if (p.status === 'delivered') return;
+                const dates = getProjectDates(p);
+                dates.forEach(d => {
+                    rows.push(buildProjectCSVRow(id, p, d));
+                });
+            });
+
+            if (rows.length === 0) {
+                alert('No active (undelivered) tracks to export.');
+                return;
+            }
+
+            const today = toDateStr(new Date());
+            downloadCSV(rows, 'active_tracks_' + today + '.csv');
+            closeModal('exportModal');
+        }
+
+        // Export Option 2: Date range log
+        function exportDateRangeLog() {
+            const startDate = document.getElementById('exportStartDate').value;
+            const noEndDate = document.getElementById('exportNoEndDate').checked;
+            const endDate = document.getElementById('exportEndDate').value;
+
+            if (!startDate) {
+                alert('Please select a start date.');
+                return;
+            }
+            if (!noEndDate && !endDate) {
+                alert('Please select an end date or check "All delivery dates after start date".');
+                return;
+            }
+
+            const rows = [];
+            Object.entries(projects).forEach(([id, p]) => {
+                const dates = getProjectDates(p);
+                dates.forEach(d => {
+                    // Filter by delivery date within range
+                    const delDate = d.endDate;
+                    if (!delDate) return; // skip entries with no delivery date
+
+                    if (delDate < startDate) return; // before range
+                    if (!noEndDate && delDate > endDate) return; // after range
+
+                    rows.push(buildProjectCSVRow(id, p, d));
+                });
+            });
+
+            if (rows.length === 0) {
+                alert('No tracks found in the selected date range.');
+                return;
+            }
+
+            const rangeLabel = noEndDate ? startDate + '_onward' : startDate + '_to_' + endDate;
+            downloadCSV(rows, 'project_log_' + rangeLabel + '.csv');
+            closeModal('exportModal');
         }
 
         // Show modal (generic)
