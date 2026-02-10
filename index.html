@@ -190,6 +190,223 @@
             min-height: 100px;
         }
 
+        /* Checkbox Multi-Select Module */
+        .checkbox-multiselect {
+            position: relative;
+        }
+
+        .checkbox-multiselect-trigger {
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            background: #f8f9fa;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            min-height: 44px;
+            user-select: none;
+        }
+
+        .checkbox-multiselect-trigger:hover {
+            border-color: #667eea;
+        }
+
+        .checkbox-multiselect-trigger.active {
+            border-color: #667eea;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .checkbox-multiselect-trigger .arrow {
+            font-size: 10px;
+            color: #666;
+            transition: transform 0.3s;
+        }
+
+        .checkbox-multiselect-trigger.active .arrow {
+            transform: rotate(180deg);
+        }
+
+        .checkbox-multiselect-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 2px solid #667eea;
+            border-top: none;
+            border-radius: 0 0 8px 8px;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 100;
+            display: none;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .checkbox-multiselect-dropdown.open {
+            display: block;
+            animation: slideDown 0.2s ease;
+        }
+
+        .checkbox-option {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 15px;
+            cursor: pointer;
+            transition: background 0.2s;
+            font-size: 14px;
+        }
+
+        .checkbox-option:hover {
+            background: #f0f0ff;
+        }
+
+        .checkbox-option input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            accent-color: #667eea;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+
+        .checkbox-option label {
+            cursor: pointer;
+            font-weight: 400;
+            color: #333;
+            flex: 1;
+        }
+
+        .selected-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 8px;
+        }
+
+        .selected-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 10px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .selected-tag .remove-tag {
+            cursor: pointer;
+            font-size: 14px;
+            line-height: 1;
+            opacity: 0.8;
+            transition: opacity 0.2s;
+        }
+
+        .selected-tag .remove-tag:hover {
+            opacity: 1;
+        }
+
+        .checkbox-multiselect-empty {
+            padding: 15px;
+            text-align: center;
+            color: #999;
+            font-size: 13px;
+        }
+
+        /* Multi-phase Delivery */
+        .delivery-dates-section {
+            grid-column: 1 / -1;
+        }
+
+        .single-delivery-dates {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .phases-container {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .phase-row {
+            display: grid;
+            grid-template-columns: auto 1fr 1fr 40px;
+            gap: 15px;
+            align-items: end;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border: 1px solid #e0e0e0;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .phase-label {
+            font-weight: 600;
+            color: #667eea;
+            font-size: 14px;
+            padding-bottom: 12px;
+            white-space: nowrap;
+        }
+
+        .phase-row .form-group {
+            margin: 0;
+        }
+
+        .remove-phase-btn {
+            width: 36px;
+            height: 36px;
+            border: none;
+            background: #fce4ec;
+            color: #c2185b;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            margin-bottom: 2px;
+        }
+
+        .remove-phase-btn:hover {
+            background: #f8bbd0;
+            transform: scale(1.1);
+        }
+
+        .add-phase-btn {
+            padding: 10px 20px;
+            border: 2px dashed #667eea;
+            background: transparent;
+            color: #667eea;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.2s;
+            width: 100%;
+        }
+
+        .add-phase-btn:hover {
+            background: #f0f0ff;
+            border-style: solid;
+        }
+
+        @media (max-width: 768px) {
+            .single-delivery-dates {
+                grid-template-columns: 1fr;
+            }
+            .phase-row {
+                grid-template-columns: 1fr;
+            }
+        }
+
         /* Account Cards */
         .account-grid {
             display: grid;
@@ -279,18 +496,221 @@
             animation: slideDown 0.3s ease;
         }
 
-        /* Gantt Chart Placeholder */
+        /* Gantt Chart */
         .gantt-container {
             background: white;
             padding: 30px;
             border-radius: 15px;
             box-shadow: 0 5px 20px rgba(0,0,0,0.05);
-            min-height: 500px;
+            min-height: 400px;
+            overflow-x: auto;
+        }
+
+        .gantt-empty {
             display: flex;
             align-items: center;
             justify-content: center;
-            color: #666;
+            min-height: 300px;
+            color: #999;
+            font-size: 16px;
+            text-align: center;
+        }
+
+        .gantt-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .gantt-header h3 {
             font-size: 18px;
+            color: #1a1a2e;
+        }
+
+        .gantt-legend {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .gantt-legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            color: #666;
+        }
+
+        .gantt-legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 3px;
+        }
+
+        .gantt-chart {
+            position: relative;
+            min-width: 600px;
+        }
+
+        .gantt-timeline-header {
+            display: flex;
+            border-bottom: 2px solid #e0e0e0;
+            margin-left: 200px;
+            margin-bottom: 5px;
+        }
+
+        .gantt-month-label {
+            font-size: 11px;
+            font-weight: 600;
+            color: #667eea;
+            text-transform: uppercase;
+            padding: 5px 0;
+            border-left: 1px solid #e0e0e0;
+            text-align: center;
+            box-sizing: border-box;
+        }
+
+        .gantt-row {
+            display: flex;
+            align-items: stretch;
+            min-height: 44px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .gantt-row:hover {
+            background: #fafafe;
+        }
+
+        .gantt-row-label {
+            width: 200px;
+            min-width: 200px;
+            padding: 10px 12px;
+            font-size: 13px;
+            font-weight: 500;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            border-right: 2px solid #e0e0e0;
+        }
+
+        .gantt-row-label .project-name {
+            font-weight: 600;
+            color: #1a1a2e;
+            margin-bottom: 2px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .gantt-row-label .project-account {
+            font-size: 11px;
+            color: #999;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .gantt-row-bars {
+            flex: 1;
+            position: relative;
+            min-height: 44px;
+        }
+
+        .gantt-bar {
+            position: absolute;
+            height: 24px;
+            top: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: opacity 0.2s, transform 0.2s;
+            display: flex;
+            align-items: center;
+            padding: 0 8px;
+            font-size: 11px;
+            font-weight: 600;
+            color: white;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            min-width: 4px;
+        }
+
+        .gantt-bar:hover {
+            opacity: 0.85;
+            transform: scaleY(1.15);
+            z-index: 10;
+        }
+
+        .gantt-bar.status-received { background: linear-gradient(135deg, #42a5f5, #1976d2); }
+        .gantt-bar.status-first-response { background: linear-gradient(135deg, #ab47bc, #7b1fa2); }
+        .gantt-bar.status-in-pipeline { background: linear-gradient(135deg, #ffa726, #f57c00); }
+        .gantt-bar.status-in-progress { background: linear-gradient(135deg, #66bb6a, #388e3c); }
+        .gantt-bar.status-delivered { background: linear-gradient(135deg, #26a69a, #00796b); }
+        .gantt-bar.status-on-pause { background: linear-gradient(135deg, #ef5350, #c2185b); }
+
+        .gantt-bar-phase {
+            opacity: 0.75;
+            top: 10px;
+        }
+
+        .gantt-bar-phase:nth-child(even) {
+            top: 22px;
+            height: 18px;
+            font-size: 10px;
+        }
+
+        .gantt-today-line {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: #ef5350;
+            z-index: 5;
+            pointer-events: none;
+        }
+
+        .gantt-today-label {
+            position: absolute;
+            top: -18px;
+            font-size: 10px;
+            font-weight: 600;
+            color: #ef5350;
+            transform: translateX(-50%);
+            white-space: nowrap;
+        }
+
+        .gantt-grid-lines {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+        }
+
+        .gantt-grid-line {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 1px;
+            background: #f0f0f0;
+        }
+
+        .gantt-tooltip {
+            position: fixed;
+            background: #1a1a2e;
+            color: white;
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 12px;
+            z-index: 3000;
+            pointer-events: none;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            max-width: 250px;
+            line-height: 1.5;
+            display: none;
         }
 
         /* Buttons */
@@ -452,8 +872,12 @@
                 <input type="text" id="loginUsername" placeholder="Enter your username">
             </div>
             <div class="form-group" style="margin-bottom: 20px;">
-                <label>Firebase Database Key</label>
-                <input type="password" id="firebaseKey" placeholder="Enter your Firebase key">
+                <label>Firebase API Key</label>
+                <input type="password" id="firebaseKey" placeholder="Enter your Firebase API key">
+            </div>
+            <div class="form-group" style="margin-bottom: 20px;">
+                <label>Firebase Database URL</label>
+                <input type="text" id="firebaseDatabaseURL" placeholder="https://your-project.firebaseio.com">
             </div>
             <button class="btn btn-primary" onclick="login()" style="width: 100%; margin-top: 10px;">Login</button>
             <p style="margin-top: 20px; color: #666;">New user? Enter your details to create an account</p>
@@ -520,16 +944,30 @@
                             
                             <div class="form-group">
                                 <label>Primary Stakeholder</label>
-                                <select id="primaryStakeholder">
-                                    <option value="">Select Primary Stakeholder</option>
-                                </select>
+                                <div class="checkbox-multiselect" id="primaryStakeholderModule">
+                                    <div class="checkbox-multiselect-trigger" onclick="toggleMultiSelect('primaryStakeholder')">
+                                        <span id="primaryStakeholderPlaceholder">Select Primary Stakeholders</span>
+                                        <span class="arrow">&#9660;</span>
+                                    </div>
+                                    <div class="checkbox-multiselect-dropdown" id="primaryStakeholderDropdown">
+                                        <div class="checkbox-multiselect-empty">Select an account first</div>
+                                    </div>
+                                    <div class="selected-tags" id="primaryStakeholderTags"></div>
+                                </div>
                             </div>
-                            
+
                             <div class="form-group">
                                 <label>Secondary Stakeholders</label>
-                                <select id="secondaryStakeholders" class="multi-select" multiple>
-                                    <option value="">Select Secondary Stakeholders</option>
-                                </select>
+                                <div class="checkbox-multiselect" id="secondaryStakeholdersModule">
+                                    <div class="checkbox-multiselect-trigger" onclick="toggleMultiSelect('secondaryStakeholders')">
+                                        <span id="secondaryStakeholdersPlaceholder">Select Secondary Stakeholders</span>
+                                        <span class="arrow">&#9660;</span>
+                                    </div>
+                                    <div class="checkbox-multiselect-dropdown" id="secondaryStakeholdersDropdown">
+                                        <div class="checkbox-multiselect-empty">Select an account first</div>
+                                    </div>
+                                    <div class="selected-tags" id="secondaryStakeholdersTags"></div>
+                                </div>
                             </div>
                             
                             <div class="form-group">
@@ -544,8 +982,16 @@
                             
                             <div class="form-group">
                                 <label>Project Resources</label>
-                                <select id="projectResources" class="multi-select" multiple onchange="calculateTimeline()">
-                                </select>
+                                <div class="checkbox-multiselect" id="projectResourcesModule">
+                                    <div class="checkbox-multiselect-trigger" onclick="toggleMultiSelect('projectResources')">
+                                        <span id="projectResourcesPlaceholder">Select Resources</span>
+                                        <span class="arrow">&#9660;</span>
+                                    </div>
+                                    <div class="checkbox-multiselect-dropdown" id="projectResourcesDropdown">
+                                        <div class="checkbox-multiselect-empty">No resources available</div>
+                                    </div>
+                                    <div class="selected-tags" id="projectResourcesTags"></div>
+                                </div>
                             </div>
                             
                             <div class="form-group">
@@ -572,16 +1018,34 @@
                                     <option value="multi">Multi-phase Delivery</option>
                                 </select>
                             </div>
-                            
-                            <div class="form-group">
-                                <label>Delivery Timeline</label>
-                                <input type="date" id="deliveryTimeline">
-                                <div id="suggestedTimeline" style="color: #667eea; font-size: 12px; margin-top: 5px;"></div>
-                            </div>
-                            
+
                             <div class="form-group">
                                 <label>Draup CC SR No</label>
                                 <input type="text" id="draupCC" placeholder="Internal tracking number">
+                            </div>
+                        </div>
+
+                        <!-- Delivery Dates Section -->
+                        <div class="delivery-dates-section" style="margin-bottom: 20px;">
+                            <!-- Single Delivery Dates -->
+                            <div id="singleDeliveryDates" class="single-delivery-dates">
+                                <div class="form-group">
+                                    <label>Starting Date</label>
+                                    <input type="date" id="startingDate">
+                                </div>
+                                <div class="form-group">
+                                    <label>Delivery Date</label>
+                                    <input type="date" id="deliveryTimeline">
+                                    <div id="suggestedTimeline" style="color: #667eea; font-size: 12px; margin-top: 5px;"></div>
+                                </div>
+                            </div>
+
+                            <!-- Multi-phase Delivery Dates -->
+                            <div id="multiDeliveryDates" style="display: none;">
+                                <div class="phases-container" id="phasesContainer">
+                                    <!-- Phase rows generated dynamically -->
+                                </div>
+                                <button type="button" class="add-phase-btn" onclick="addPhase()" style="margin-top: 10px;">+ Add Phase</button>
                             </div>
                         </div>
                         
@@ -620,16 +1084,11 @@
                     <h1>Timeline Dashboard</h1>
                     <p>View project timelines and resource allocation</p>
                 </div>
-                
-                <div class="gantt-container">
-                    <div>
-                        <h3>Gantt Chart Visualization</h3>
-                        <p>Interactive timeline view will be implemented here</p>
-                        <p style="font-size: 14px; color: #999; margin-top: 10px;">
-                            Features: Resource allocation, timeline conflicts, workload visualization
-                        </p>
-                    </div>
+
+                <div class="gantt-container" id="ganttContainer">
+                    <!-- Rendered dynamically by renderGanttChart() -->
                 </div>
+                <div class="gantt-tooltip" id="ganttTooltip"></div>
             </div>
 
             <!-- Resources Tab -->
@@ -719,32 +1178,41 @@
         function login() {
             const username = document.getElementById('loginUsername').value;
             const firebaseKey = document.getElementById('firebaseKey').value;
-            
-            if (!username || !firebaseKey) {
-                alert('Please enter both username and Firebase key');
+            const databaseURL = document.getElementById('firebaseDatabaseURL').value.trim();
+
+            if (!username || !firebaseKey || !databaseURL) {
+                alert('Please enter username, Firebase API key, and Database URL');
                 return;
             }
-            
+
+            // Derive project ID from the database URL (e.g. https://my-project.firebaseio.com -> my-project)
+            let projectId = '';
+            try {
+                const url = new URL(databaseURL);
+                projectId = url.hostname.split('.')[0];
+            } catch (e) {
+                alert('Invalid Database URL. Please enter a valid Firebase Realtime Database URL.');
+                return;
+            }
+
             currentUser = {
                 username: username,
                 createdAt: new Date().toISOString()
             };
-            
-            // For demo purposes, we'll create a simple config
-            // In production, you'd parse the actual Firebase config
+
             firebaseConfig = {
                 apiKey: firebaseKey,
-                authDomain: "your-project.firebaseapp.com",
-                databaseURL: "https://your-project.firebaseio.com",
-                projectId: "your-project",
-                storageBucket: "your-project.appspot.com",
-                messagingSenderId: "123456789",
-                appId: "your-app-id"
+                authDomain: projectId + ".firebaseapp.com",
+                databaseURL: databaseURL,
+                projectId: projectId,
+                storageBucket: projectId + ".appspot.com",
+                messagingSenderId: "",
+                appId: ""
             };
-            
+
             localStorage.setItem('currentUser', JSON.stringify(currentUser));
             localStorage.setItem('firebaseConfig', JSON.stringify(firebaseConfig));
-            
+
             initializeFirebase();
             showMainApp();
         }
@@ -778,13 +1246,15 @@
                 database.ref('accounts').on('value', (snapshot) => {
                     accounts = snapshot.val() || {};
                     updateAccountsDisplay();
+                    populateDropdowns();
                 });
-                
+
                 database.ref('resources').on('value', (snapshot) => {
                     resources = snapshot.val() || {};
                     updateResourcesDisplay();
+                    populateDropdowns();
                 });
-                
+
                 database.ref('projects').on('value', (snapshot) => {
                     projects = snapshot.val() || {};
                     updateProjectsDisplay();
@@ -821,6 +1291,7 @@
             updateAccountsDisplay();
             updateResourcesDisplay();
             populateDropdowns();
+            renderGanttChart();
         }
 
         // Tab switching
@@ -847,7 +1318,7 @@
             document.getElementById('userDropdown').classList.toggle('active');
         }
 
-        // Close dropdown when clicking outside
+        // Close user dropdown when clicking outside
         document.addEventListener('click', function(event) {
             if (!event.target.closest('.user-section')) {
                 document.getElementById('userDropdown').classList.remove('active');
@@ -886,92 +1357,217 @@
             document.getElementById('serialNumber').value = serial;
         }
 
-        // Update stakeholders dropdown
+        // Toggle multi-select dropdown
+        function toggleMultiSelect(moduleId) {
+            const dropdown = document.getElementById(moduleId + 'Dropdown');
+            const trigger = dropdown.previousElementSibling;
+            const isOpen = dropdown.classList.contains('open');
+
+            // Close all other open dropdowns
+            document.querySelectorAll('.checkbox-multiselect-dropdown.open').forEach(d => {
+                d.classList.remove('open');
+                d.previousElementSibling.classList.remove('active');
+            });
+
+            if (!isOpen) {
+                dropdown.classList.add('open');
+                trigger.classList.add('active');
+            }
+        }
+
+        // Close multi-select dropdowns when clicking outside
+        document.addEventListener('click', function(event) {
+            if (!event.target.closest('.checkbox-multiselect')) {
+                document.querySelectorAll('.checkbox-multiselect-dropdown.open').forEach(d => {
+                    d.classList.remove('open');
+                    d.previousElementSibling.classList.remove('active');
+                });
+            }
+        });
+
+        // Get checked values from a checkbox multi-select
+        function getCheckedValues(moduleId) {
+            const checkboxes = document.querySelectorAll(`#${moduleId}Dropdown input[type="checkbox"]:checked`);
+            return Array.from(checkboxes).map(cb => cb.value);
+        }
+
+        // Update the selected-tags display for a multi-select module
+        function updateSelectedTags(moduleId, labelMap) {
+            const tagsContainer = document.getElementById(moduleId + 'Tags');
+            const values = getCheckedValues(moduleId);
+            const placeholder = document.getElementById(moduleId + 'Placeholder');
+
+            if (values.length === 0) {
+                tagsContainer.innerHTML = '';
+                if (moduleId === 'projectResources') {
+                    placeholder.textContent = 'Select Resources';
+                } else if (moduleId === 'primaryStakeholder') {
+                    placeholder.textContent = 'Select Primary Stakeholders';
+                } else {
+                    placeholder.textContent = 'Select Secondary Stakeholders';
+                }
+            } else {
+                placeholder.textContent = values.length + ' selected';
+                tagsContainer.innerHTML = values.map(v => {
+                    const label = labelMap[v] || v;
+                    return `<span class="selected-tag">${label}<span class="remove-tag" onclick="event.stopPropagation(); uncheckOption('${moduleId}', '${v}')">&times;</span></span>`;
+                }).join('');
+            }
+        }
+
+        // Uncheck an option and refresh tags
+        function uncheckOption(moduleId, value) {
+            const checkbox = document.querySelector(`#${moduleId}Dropdown input[type="checkbox"][value="${value}"]`);
+            if (checkbox) {
+                checkbox.checked = false;
+                checkbox.dispatchEvent(new Event('change'));
+            }
+        }
+
+        // Build checkbox options inside a dropdown
+        function buildCheckboxOptions(moduleId, items, onChangeFn) {
+            const dropdown = document.getElementById(moduleId + 'Dropdown');
+            if (items.length === 0) {
+                dropdown.innerHTML = '<div class="checkbox-multiselect-empty">No options available</div>';
+                return;
+            }
+            dropdown.innerHTML = items.map(item =>
+                `<div class="checkbox-option">
+                    <input type="checkbox" id="${moduleId}_${item.value}" value="${item.value}" onchange="${onChangeFn}">
+                    <label for="${moduleId}_${item.value}">${item.label}</label>
+                </div>`
+            ).join('');
+        }
+
+        // Update stakeholders checkboxes
         function updateStakeholders() {
             const accountId = document.getElementById('account').value;
-            const primarySelect = document.getElementById('primaryStakeholder');
-            const secondarySelect = document.getElementById('secondaryStakeholders');
-            
-            primarySelect.innerHTML = '<option value="">Select Primary Stakeholder</option>';
-            secondarySelect.innerHTML = '';
-            
+            const primaryDropdown = document.getElementById('primaryStakeholderDropdown');
+            const secondaryDropdown = document.getElementById('secondaryStakeholdersDropdown');
+
+            // Reset
+            document.getElementById('primaryStakeholderTags').innerHTML = '';
+            document.getElementById('secondaryStakeholdersTags').innerHTML = '';
+            document.getElementById('primaryStakeholderPlaceholder').textContent = 'Select Primary Stakeholders';
+            document.getElementById('secondaryStakeholdersPlaceholder').textContent = 'Select Secondary Stakeholders';
+
             if (accountId && accounts[accountId]) {
                 const stakeholders = accounts[accountId].stakeholders || [];
-                
-                stakeholders.forEach((stakeholder, index) => {
-                    // Primary stakeholder dropdown
-                    const option1 = document.createElement('option');
-                    option1.value = index;
-                    option1.textContent = stakeholder.name;
-                    primarySelect.appendChild(option1);
-                    
-                    // Secondary stakeholders multi-select
-                    const option2 = document.createElement('option');
-                    option2.value = index;
-                    option2.textContent = stakeholder.name;
-                    secondarySelect.appendChild(option2);
-                });
-                
+
+                const items = stakeholders.map((s, index) => ({
+                    value: String(index),
+                    label: s.name
+                }));
+
+                buildCheckboxOptions('primaryStakeholder', items, 'onPrimaryStakeholderChange()');
+                buildCheckboxOptions('secondaryStakeholders', items, 'onSecondaryStakeholderChange()');
+
                 // Auto-fill POC
                 const primaryPOC = stakeholders.find(s => s.isPrimary);
                 if (primaryPOC) {
                     document.getElementById('accountPOC').value = primaryPOC.name + ' - ' + primaryPOC.email;
                 }
+            } else {
+                primaryDropdown.innerHTML = '<div class="checkbox-multiselect-empty">Select an account first</div>';
+                secondaryDropdown.innerHTML = '<div class="checkbox-multiselect-empty">Select an account first</div>';
             }
+        }
+
+        // Callback when primary stakeholder checkboxes change
+        function onPrimaryStakeholderChange() {
+            const accountId = document.getElementById('account').value;
+            const stakeholders = (accountId && accounts[accountId]) ? accounts[accountId].stakeholders || [] : [];
+            const labelMap = {};
+            stakeholders.forEach((s, i) => { labelMap[String(i)] = s.name; });
+            updateSelectedTags('primaryStakeholder', labelMap);
+        }
+
+        // Callback when secondary stakeholder checkboxes change
+        function onSecondaryStakeholderChange() {
+            const accountId = document.getElementById('account').value;
+            const stakeholders = (accountId && accounts[accountId]) ? accounts[accountId].stakeholders || [] : [];
+            const labelMap = {};
+            stakeholders.forEach((s, i) => { labelMap[String(i)] = s.name; });
+            updateSelectedTags('secondaryStakeholders', labelMap);
         }
 
         // Calculate suggested timeline
         function calculateTimeline() {
             const bandwidth = parseInt(document.getElementById('bandwidth').value) || 0;
-            const selectedResources = Array.from(document.getElementById('projectResources').selectedOptions);
-            
-            if (bandwidth && selectedResources.length > 0) {
+            const selectedResourceIds = getCheckedValues('projectResources');
+
+            if (bandwidth && selectedResourceIds.length > 0) {
                 // Calculate based on resource efficiency and distribution
                 let totalEfficiency = 0;
-                selectedResources.forEach(option => {
-                    const resource = resources[option.value];
+                selectedResourceIds.forEach(id => {
+                    const resource = resources[id];
                     if (resource) {
                         const efficiency = 1 + (resource.level * 0.2);
                         totalEfficiency += efficiency;
                     }
                 });
-                
+
                 // Calculate days needed with resource distribution
                 const effectiveDays = Math.ceil(bandwidth / totalEfficiency) + 1; // +1 day buffer
-                
-                // Suggest timeline
+
+                // Set starting date to today and delivery date based on calculation
                 const startDate = new Date();
                 const endDate = new Date(startDate);
                 endDate.setDate(endDate.getDate() + effectiveDays);
-                
-                document.getElementById('deliveryTimeline').value = endDate.toISOString().split('T')[0];
+
+                const startISO = startDate.toISOString().split('T')[0];
+                const endISO = endDate.toISOString().split('T')[0];
+
+                // Update single delivery fields
+                document.getElementById('startingDate').value = startISO;
+                document.getElementById('deliveryTimeline').value = endISO;
                 document.getElementById('suggestedTimeline').textContent = `Suggested: ${effectiveDays} days with selected resources`;
+
+                // If multi-phase, auto-fill first phase dates
+                const firstPhase = document.querySelector('#phasesContainer .phase-row');
+                if (firstPhase) {
+                    const phaseStart = firstPhase.querySelector('.phase-start');
+                    const phaseEnd = firstPhase.querySelector('.phase-end');
+                    if (phaseStart && !phaseStart.value) phaseStart.value = startISO;
+                    if (phaseEnd && !phaseEnd.value) phaseEnd.value = endISO;
+                }
             }
         }
 
         // Populate dropdowns
         function populateDropdowns() {
-            // Populate accounts dropdown
+            // Populate accounts dropdown (stays as a regular select)
             const accountSelect = document.getElementById('account');
             accountSelect.innerHTML = '<option value="">Select Account</option>';
-            
+
             Object.entries(accounts).forEach(([id, account]) => {
                 const option = document.createElement('option');
                 option.value = id;
                 option.textContent = account.name;
                 accountSelect.appendChild(option);
             });
-            
-            // Populate resources dropdown
-            const resourceSelect = document.getElementById('projectResources');
-            resourceSelect.innerHTML = '';
-            
+
+            // Populate resources checkbox multi-select
+            const items = Object.entries(resources).map(([id, resource]) => ({
+                value: id,
+                label: `${resource.name} (${resource.title})`
+            }));
+
+            buildCheckboxOptions('projectResources', items, 'onProjectResourcesChange()');
+
+            // Reset tags
+            document.getElementById('projectResourcesTags').innerHTML = '';
+            document.getElementById('projectResourcesPlaceholder').textContent = 'Select Resources';
+        }
+
+        // Callback when project resources checkboxes change
+        function onProjectResourcesChange() {
+            const labelMap = {};
             Object.entries(resources).forEach(([id, resource]) => {
-                const option = document.createElement('option');
-                option.value = id;
-                option.textContent = `${resource.name} (${resource.title})`;
-                resourceSelect.appendChild(option);
+                labelMap[id] = resource.name;
             });
+            updateSelectedTags('projectResources', labelMap);
+            calculateTimeline();
         }
 
         // Update accounts display
@@ -1074,6 +1670,213 @@
                 
                 list.appendChild(card);
             });
+        }
+
+        // Update projects display (refresh account cards and Gantt chart)
+        function updateProjectsDisplay() {
+            updateAccountsDisplay();
+            renderGanttChart();
+        }
+
+        // Render the Gantt chart
+        function renderGanttChart() {
+            const container = document.getElementById('ganttContainer');
+            const projectList = Object.entries(projects);
+
+            if (projectList.length === 0) {
+                container.innerHTML = '<div class="gantt-empty"><div><h3 style="margin-bottom:10px;color:#666;">No Projects Yet</h3><p>Create projects from the Dashboard Entry tab to see them here.</p></div></div>';
+                return;
+            }
+
+            // Collect all date segments (bars) from projects
+            const bars = [];
+            projectList.forEach(([id, p]) => {
+                const accountName = (p.account && accounts[p.account]) ? accounts[p.account].name : 'Unknown';
+                const projectName = p.projectName || p.serialNumber || id;
+
+                if (p.deliveryType === 'multi' && p.delivery && p.delivery.phases) {
+                    p.delivery.phases.forEach(phase => {
+                        if (phase.startingDate && phase.deliveryDate) {
+                            bars.push({
+                                id: id,
+                                name: projectName,
+                                account: accountName,
+                                status: p.status || 'received',
+                                start: new Date(phase.startingDate),
+                                end: new Date(phase.deliveryDate),
+                                label: 'Phase ' + phase.phase,
+                                isPhase: true
+                            });
+                        }
+                    });
+                } else {
+                    // Single delivery or legacy format
+                    let startDate = null;
+                    let endDate = null;
+
+                    if (p.delivery) {
+                        startDate = p.delivery.startingDate ? new Date(p.delivery.startingDate) : null;
+                        endDate = p.delivery.deliveryDate ? new Date(p.delivery.deliveryDate) : null;
+                    }
+                    // Fallback for legacy data
+                    if (!startDate && p.createdAt) startDate = new Date(p.createdAt);
+                    if (!endDate && p.deliveryTimeline) endDate = new Date(p.deliveryTimeline);
+
+                    if (startDate && endDate && !isNaN(startDate) && !isNaN(endDate)) {
+                        bars.push({
+                            id: id,
+                            name: projectName,
+                            account: accountName,
+                            status: p.status || 'received',
+                            start: startDate,
+                            end: endDate,
+                            label: '',
+                            isPhase: false
+                        });
+                    }
+                }
+            });
+
+            if (bars.length === 0) {
+                container.innerHTML = '<div class="gantt-empty"><div><h3 style="margin-bottom:10px;color:#666;">No Dates Available</h3><p>Add starting and delivery dates to your projects to see the timeline.</p></div></div>';
+                return;
+            }
+
+            // Compute global date range with padding
+            let minDate = new Date(Math.min(...bars.map(b => b.start.getTime())));
+            let maxDate = new Date(Math.max(...bars.map(b => b.end.getTime())));
+            // Pad by 7 days on each side
+            minDate.setDate(minDate.getDate() - 7);
+            maxDate.setDate(maxDate.getDate() + 7);
+
+            const totalDays = Math.ceil((maxDate - minDate) / (1000 * 60 * 60 * 24));
+            const dayWidth = Math.max(4, Math.min(20, 800 / totalDays));
+            const chartWidth = totalDays * dayWidth;
+
+            // Group bars by project id (to show multi-phase on same row)
+            const projectRows = {};
+            bars.forEach(bar => {
+                if (!projectRows[bar.id]) {
+                    projectRows[bar.id] = { name: bar.name, account: bar.account, bars: [] };
+                }
+                projectRows[bar.id].bars.push(bar);
+            });
+
+            // Build month labels
+            let monthLabelsHTML = '';
+            const tempDate = new Date(minDate);
+            tempDate.setDate(1);
+            if (tempDate < minDate) tempDate.setMonth(tempDate.getMonth() + 1);
+
+            const months = [];
+            while (tempDate <= maxDate) {
+                const monthStart = new Date(tempDate);
+                const nextMonth = new Date(tempDate);
+                nextMonth.setMonth(nextMonth.getMonth() + 1);
+                const monthEnd = nextMonth > maxDate ? maxDate : nextMonth;
+
+                const startOffset = Math.max(0, (monthStart - minDate) / (1000 * 60 * 60 * 24));
+                const endOffset = (monthEnd - minDate) / (1000 * 60 * 60 * 24);
+                const width = (endOffset - startOffset) * dayWidth;
+
+                months.push({
+                    label: monthStart.toLocaleString('default', { month: 'short', year: 'numeric' }),
+                    left: startOffset * dayWidth,
+                    width: width
+                });
+
+                tempDate.setMonth(tempDate.getMonth() + 1);
+            }
+            monthLabelsHTML = months.map(m =>
+                `<div class="gantt-month-label" style="width:${m.width}px;min-width:${m.width}px;">${m.label}</div>`
+            ).join('');
+
+            // Build grid lines (one per month boundary)
+            let gridLinesHTML = months.map(m =>
+                `<div class="gantt-grid-line" style="left:${m.left}px;"></div>`
+            ).join('');
+
+            // Today line
+            const today = new Date();
+            let todayLineHTML = '';
+            if (today >= minDate && today <= maxDate) {
+                const todayOffset = ((today - minDate) / (1000 * 60 * 60 * 24)) * dayWidth;
+                todayLineHTML = `<div class="gantt-today-line" style="left:${todayOffset}px;"><div class="gantt-today-label">Today</div></div>`;
+            }
+
+            // Build rows
+            let rowsHTML = '';
+            Object.values(projectRows).forEach(proj => {
+                let barsHTML = '';
+                proj.bars.forEach(bar => {
+                    const startOffset = ((bar.start - minDate) / (1000 * 60 * 60 * 24)) * dayWidth;
+                    const barWidth = Math.max(4, ((bar.end - bar.start) / (1000 * 60 * 60 * 24)) * dayWidth);
+                    const phaseClass = bar.isPhase ? ' gantt-bar-phase' : '';
+                    const barLabel = bar.isPhase ? bar.label : '';
+                    const statusClass = 'status-' + bar.status;
+
+                    const startStr = bar.start.toLocaleDateString();
+                    const endStr = bar.end.toLocaleDateString();
+                    const days = Math.ceil((bar.end - bar.start) / (1000 * 60 * 60 * 24));
+                    const tooltipData = `${bar.name}${bar.isPhase ? ' - ' + bar.label : ''}|${startStr} - ${endStr}|${days} days | ${bar.status.replace('-', ' ')}`;
+
+                    barsHTML += `<div class="gantt-bar ${statusClass}${phaseClass}" style="left:${startOffset}px;width:${barWidth}px;" onmouseenter="showGanttTooltip(event, '${tooltipData.replace(/'/g, "\\'")}')" onmouseleave="hideGanttTooltip()">${barLabel}</div>`;
+                });
+
+                rowsHTML += `
+                    <div class="gantt-row">
+                        <div class="gantt-row-label">
+                            <div class="project-name" title="${proj.name}">${proj.name}</div>
+                            <div class="project-account">${proj.account}</div>
+                        </div>
+                        <div class="gantt-row-bars" style="width:${chartWidth}px;min-width:${chartWidth}px;">
+                            <div class="gantt-grid-lines">${gridLinesHTML}${todayLineHTML}</div>
+                            ${barsHTML}
+                        </div>
+                    </div>
+                `;
+            });
+
+            // Status legend
+            const statusColors = [
+                { label: 'Received', cls: 'status-received' },
+                { label: 'First Response', cls: 'status-first-response' },
+                { label: 'In Pipeline', cls: 'status-in-pipeline' },
+                { label: 'In Progress', cls: 'status-in-progress' },
+                { label: 'Delivered', cls: 'status-delivered' },
+                { label: 'On Pause', cls: 'status-on-pause' }
+            ];
+            const legendHTML = statusColors.map(s => {
+                const div = document.createElement('div');
+                div.className = 'gantt-bar ' + s.cls;
+                // We need the computed background; use a simple mapping instead
+                return `<div class="gantt-legend-item"><div class="gantt-legend-color gantt-bar ${s.cls}" style="width:12px;height:12px;position:static;border-radius:3px;"></div>${s.label}</div>`;
+            }).join('');
+
+            container.innerHTML = `
+                <div class="gantt-header">
+                    <h3>Project Timeline</h3>
+                    <div class="gantt-legend">${legendHTML}</div>
+                </div>
+                <div class="gantt-chart">
+                    <div class="gantt-timeline-header" style="width:${chartWidth}px;min-width:${chartWidth}px;">${monthLabelsHTML}</div>
+                    ${rowsHTML}
+                </div>
+            `;
+        }
+
+        // Gantt tooltip
+        function showGanttTooltip(event, data) {
+            const tooltip = document.getElementById('ganttTooltip');
+            const parts = data.split('|');
+            tooltip.innerHTML = parts.map((p, i) => i === 0 ? `<strong>${p}</strong>` : p).join('<br>');
+            tooltip.style.display = 'block';
+            tooltip.style.left = (event.clientX + 12) + 'px';
+            tooltip.style.top = (event.clientY - 10) + 'px';
+        }
+
+        function hideGanttTooltip() {
+            document.getElementById('ganttTooltip').style.display = 'none';
         }
 
         // Toggle resource details
@@ -1212,18 +2015,38 @@
         document.getElementById('dashboardForm').addEventListener('submit', function(e) {
             e.preventDefault();
             
+            const deliveryType = document.getElementById('deliveryType').value;
+            let deliveryData = {};
+
+            if (deliveryType === 'single') {
+                deliveryData = {
+                    startingDate: document.getElementById('startingDate').value,
+                    deliveryDate: document.getElementById('deliveryTimeline').value
+                };
+            } else {
+                const phases = [];
+                document.querySelectorAll('#phasesContainer .phase-row').forEach((row, index) => {
+                    phases.push({
+                        phase: index + 1,
+                        startingDate: row.querySelector('.phase-start').value,
+                        deliveryDate: row.querySelector('.phase-end').value
+                    });
+                });
+                deliveryData = { phases: phases };
+            }
+
             const project = {
                 serialNumber: document.getElementById('serialNumber').value,
                 account: document.getElementById('account').value,
-                primaryStakeholder: document.getElementById('primaryStakeholder').value,
-                secondaryStakeholders: Array.from(document.getElementById('secondaryStakeholders').selectedOptions).map(o => o.value),
+                primaryStakeholder: getCheckedValues('primaryStakeholder'),
+                secondaryStakeholders: getCheckedValues('secondaryStakeholders'),
                 accountPOC: document.getElementById('accountPOC').value,
                 projectName: document.getElementById('projectName').value,
-                projectResources: Array.from(document.getElementById('projectResources').selectedOptions).map(o => o.value),
+                projectResources: getCheckedValues('projectResources'),
                 bandwidth: document.getElementById('bandwidth').value,
                 status: document.getElementById('status').value,
-                deliveryType: document.getElementById('deliveryType').value,
-                deliveryTimeline: document.getElementById('deliveryTimeline').value,
+                deliveryType: deliveryType,
+                delivery: deliveryData,
                 draupCC: document.getElementById('draupCC').value,
                 notes: document.getElementById('notes').value,
                 createdAt: new Date().toISOString(),
@@ -1245,12 +2068,85 @@
         function clearForm() {
             document.getElementById('dashboardForm').reset();
             generateSerialNumber();
+
+            // Reset all checkbox multi-selects
+            document.querySelectorAll('.checkbox-multiselect-dropdown input[type="checkbox"]').forEach(cb => {
+                cb.checked = false;
+            });
+            ['primaryStakeholder', 'secondaryStakeholders', 'projectResources'].forEach(moduleId => {
+                document.getElementById(moduleId + 'Tags').innerHTML = '';
+            });
+            document.getElementById('primaryStakeholderPlaceholder').textContent = 'Select Primary Stakeholders';
+            document.getElementById('secondaryStakeholdersPlaceholder').textContent = 'Select Secondary Stakeholders';
+            document.getElementById('projectResourcesPlaceholder').textContent = 'Select Resources';
+
+            // Reset delivery dates
+            document.getElementById('startingDate').value = '';
+            document.getElementById('suggestedTimeline').textContent = '';
+            document.getElementById('phasesContainer').innerHTML = '';
+            phaseCount = 0;
+            document.getElementById('singleDeliveryDates').style.display = 'grid';
+            document.getElementById('multiDeliveryDates').style.display = 'none';
         }
 
         // Update delivery fields based on type
+        let phaseCount = 0;
         function updateDeliveryFields() {
             const type = document.getElementById('deliveryType').value;
-            // In full implementation, this would show multiple date fields for multi-phase
+            const singleSection = document.getElementById('singleDeliveryDates');
+            const multiSection = document.getElementById('multiDeliveryDates');
+
+            if (type === 'single') {
+                singleSection.style.display = 'grid';
+                multiSection.style.display = 'none';
+            } else {
+                singleSection.style.display = 'none';
+                multiSection.style.display = 'block';
+                // Add two phases by default if empty
+                if (phaseCount === 0) {
+                    addPhase();
+                    addPhase();
+                }
+            }
+        }
+
+        // Add a new phase row
+        function addPhase() {
+            phaseCount++;
+            const container = document.getElementById('phasesContainer');
+            const row = document.createElement('div');
+            row.className = 'phase-row';
+            row.id = 'phase-' + phaseCount;
+            row.innerHTML = `
+                <div class="phase-label">Phase ${container.children.length + 1}</div>
+                <div class="form-group">
+                    <label>Starting Date</label>
+                    <input type="date" class="phase-start" name="phaseStart">
+                </div>
+                <div class="form-group">
+                    <label>Delivery Date</label>
+                    <input type="date" class="phase-end" name="phaseEnd">
+                </div>
+                <button type="button" class="remove-phase-btn" onclick="removePhase('phase-${phaseCount}')" title="Remove phase">&times;</button>
+            `;
+            container.appendChild(row);
+        }
+
+        // Remove a phase row
+        function removePhase(phaseId) {
+            const row = document.getElementById(phaseId);
+            if (row) {
+                row.remove();
+                renumberPhases();
+            }
+        }
+
+        // Renumber phase labels after removal
+        function renumberPhases() {
+            const rows = document.querySelectorAll('#phasesContainer .phase-row');
+            rows.forEach((row, index) => {
+                row.querySelector('.phase-label').textContent = 'Phase ' + (index + 1);
+            });
         }
 
         // Initialize app on load
