@@ -858,6 +858,39 @@
         .status-delivered { background: #e0f2f1; color: #00796b; }
         .status-on-pause { background: #fce4ec; color: #c2185b; }
 
+        /* Connection Status */
+        .connection-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 15px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            margin-top: 10px;
+        }
+
+        .connection-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .connection-dot.online {
+            background: #66bb6a;
+            box-shadow: 0 0 6px rgba(102, 187, 106, 0.6);
+        }
+
+        .connection-dot.offline {
+            background: #ef5350;
+            box-shadow: 0 0 6px rgba(239, 83, 80, 0.6);
+        }
+
+        .connection-label {
+            font-size: 11px;
+            color: rgba(255,255,255,0.6);
+            font-weight: 500;
+        }
+
         /* Login Screen */
         .login-container {
             display: flex;
@@ -1171,6 +1204,11 @@
                 <div class="tab-item" onclick="switchTab('holidays')">
                     📅 Holidays & Leaves
                 </div>
+            </div>
+
+            <div id="connectionStatus" class="connection-status">
+                <span class="connection-dot offline"></span>
+                <span class="connection-label">Offline (Demo Mode)</span>
             </div>
         </div>
 
@@ -1634,15 +1672,31 @@
             showMainApp();
         }
 
+        // Update connection status indicator in sidebar
+        function updateConnectionStatus(connected) {
+            const statusEl = document.getElementById('connectionStatus');
+            if (!statusEl) return;
+            if (connected) {
+                statusEl.innerHTML = '<span class="connection-dot online"></span><span class="connection-label">Connected to Firebase</span>';
+            } else {
+                statusEl.innerHTML = '<span class="connection-dot offline"></span><span class="connection-label">Offline (Demo Mode)</span>';
+            }
+        }
+
         // Initialize Firebase
         function initializeFirebase() {
             try {
-                firebase.initializeApp(firebaseConfig);
-                database = firebase.database();
+                // Reuse existing Firebase app if already initialized (e.g. on relaunch)
+                if (firebase.apps.length > 0) {
+                    database = firebase.app().database();
+                } else {
+                    firebase.initializeApp(firebaseConfig);
+                    database = firebase.database();
+                }
                 loadData();
             } catch (error) {
                 console.error('Firebase initialization error:', error);
-                // For demo, we'll continue without Firebase
+                updateConnectionStatus(false);
                 loadDemoData();
             }
         }
@@ -1659,11 +1713,23 @@
         // Load data from Firebase or demo data
         function loadData() {
             if (database) {
-                // Load from Firebase
+                let connectedOnce = false;
+
+                // Use first successful callback to confirm real connectivity
                 database.ref('accounts').on('value', (snapshot) => {
+                    if (!connectedOnce) {
+                        connectedOnce = true;
+                        updateConnectionStatus(true);
+                    }
                     accounts = snapshot.val() || {};
                     updateAccountsDisplay();
                     populateDropdowns();
+                }, (error) => {
+                    console.error('Firebase read error (accounts):', error);
+                    if (!connectedOnce) {
+                        updateConnectionStatus(false);
+                        loadDemoData();
+                    }
                 });
 
                 database.ref('resources').on('value', (snapshot) => {
@@ -1687,6 +1753,7 @@
                     updateLeavesDisplay();
                 });
             } else {
+                updateConnectionStatus(false);
                 loadDemoData();
             }
         }
