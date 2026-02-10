@@ -891,6 +891,80 @@
             font-weight: 500;
         }
 
+        /* Auth Tabs */
+        .auth-tabs {
+            display: flex;
+            margin-bottom: 25px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .auth-tab {
+            flex: 1;
+            padding: 12px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 15px;
+            color: #999;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -2px;
+            transition: all 0.3s;
+        }
+
+        .auth-tab:hover {
+            color: #667eea;
+        }
+
+        .auth-tab.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+
+        .manage-accounts-link {
+            position: fixed;
+            bottom: 20px;
+            right: 25px;
+            color: rgba(255,255,255,0.5);
+            font-size: 13px;
+            cursor: pointer;
+            transition: color 0.2s;
+            font-weight: 500;
+        }
+
+        .manage-accounts-link:hover {
+            color: white;
+        }
+
+        .admin-user-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .admin-user-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            border: 1px solid #e0e0e0;
+        }
+
+        .admin-user-row .user-info {
+            flex: 1;
+        }
+
+        .admin-user-row .user-info .username {
+            font-weight: 600;
+            font-size: 14px;
+            color: #1a1a2e;
+        }
+
+        .admin-user-row .user-info .created {
+            font-size: 12px;
+            color: #888;
+        }
+
         /* Login Screen */
         .login-container {
             display: flex;
@@ -905,7 +979,7 @@
             padding: 40px;
             border-radius: 15px;
             box-shadow: 0 10px 40px rgba(0,0,0,0.1);
-            width: 400px;
+            width: 480px;
             text-align: center;
         }
 
@@ -1153,20 +1227,84 @@
     <div id="loginScreen" class="login-container">
         <div class="login-box">
             <h2>Welcome to Project Manager</h2>
-            <div class="form-group" style="margin-bottom: 20px;">
-                <label>Username</label>
-                <input type="text" id="loginUsername" placeholder="Enter your username">
+
+            <div class="auth-tabs">
+                <div class="auth-tab active" id="loginTabBtn" onclick="switchAuthTab('login')">Login</div>
+                <div class="auth-tab" id="signupTabBtn" onclick="switchAuthTab('signup')">Sign Up</div>
             </div>
-            <div class="form-group" style="margin-bottom: 20px;">
-                <label>Firebase API Key</label>
-                <input type="password" id="firebaseKey" placeholder="Enter your Firebase API key">
+
+            <!-- Login Form -->
+            <div id="loginForm">
+                <div class="form-group" style="margin-bottom: 20px; text-align: left;">
+                    <label>Username</label>
+                    <input type="text" id="loginUsername" placeholder="Enter your username">
+                </div>
+                <div class="form-group" style="margin-bottom: 20px; text-align: left;">
+                    <label>Password</label>
+                    <input type="password" id="loginPassword" placeholder="Enter your password">
+                </div>
+                <button class="btn btn-primary" onclick="loginUser()" style="width: 100%; margin-top: 10px;">Login</button>
             </div>
-            <div class="form-group" style="margin-bottom: 20px;">
-                <label>Firebase Database URL</label>
-                <input type="text" id="firebaseDatabaseURL" placeholder="https://your-project.firebaseio.com">
+
+            <!-- Sign Up Form -->
+            <div id="signupForm" style="display: none;">
+                <div class="form-group" style="margin-bottom: 15px; text-align: left;">
+                    <label>Username</label>
+                    <input type="text" id="signupUsername" placeholder="Choose a username">
+                </div>
+                <div class="form-group" style="margin-bottom: 15px; text-align: left;">
+                    <label>Password</label>
+                    <input type="password" id="signupPassword" placeholder="Create a password">
+                </div>
+                <div class="form-group" style="margin-bottom: 15px; text-align: left;">
+                    <label>Confirm Password</label>
+                    <input type="password" id="signupConfirmPassword" placeholder="Confirm your password">
+                </div>
+                <div class="form-group" style="margin-bottom: 15px; text-align: left;">
+                    <label>Firebase SDK Configuration</label>
+                    <textarea id="signupFirebaseConfig" rows="8" placeholder='Paste your Firebase config here, e.g.:
+{
+  apiKey: "AIza...",
+  authDomain: "...",
+  databaseURL: "https://...",
+  projectId: "...",
+  storageBucket: "...",
+  messagingSenderId: "...",
+  appId: "..."
+}' style="font-family: monospace; font-size: 12px;"></textarea>
+                    <div style="font-size: 11px; color: #888; margin-top: 4px;">Paste the firebaseConfig object from Firebase Console &rarr; Project Settings &rarr; Your apps</div>
+                </div>
+                <button class="btn btn-primary" onclick="signUp()" style="width: 100%; margin-top: 10px;">Create Account</button>
             </div>
-            <button class="btn btn-primary" onclick="login()" style="width: 100%; margin-top: 10px;">Login</button>
-            <p style="margin-top: 20px; color: #666;">New user? Enter your details to create an account</p>
+        </div>
+
+        <div class="manage-accounts-link" onclick="showManageAccounts()">Manage Accounts</div>
+    </div>
+
+    <!-- Admin Panel Modal -->
+    <div id="adminPanel" class="modal">
+        <div class="modal-content" style="max-width: 550px;">
+            <h3 style="margin-bottom: 20px;">Manage Accounts</h3>
+
+            <div id="adminAuth">
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label>Admin Password</label>
+                    <input type="password" id="adminPassword" placeholder="Enter admin password">
+                </div>
+                <div id="adminConfigField" class="form-group" style="margin-bottom: 15px; display: none;">
+                    <label>Firebase SDK Configuration</label>
+                    <textarea id="adminFirebaseConfig" rows="6" placeholder="Paste Firebase config (required if no account has been set up on this device)..." style="font-family: monospace; font-size: 12px;"></textarea>
+                </div>
+                <button class="btn btn-primary" onclick="authenticateAdmin()" style="width: 100%;">Access</button>
+            </div>
+
+            <div id="adminDashboard" style="display: none;">
+                <div class="admin-user-list" id="adminUserList"></div>
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; margin-top: 15px;">
+                <button class="btn btn-secondary" onclick="closeAdminPanel()">Close</button>
+            </div>
         </div>
     </div>
 
@@ -1616,60 +1754,316 @@
 
         // Initialize the app
         function initializeApp() {
+            // Migrate old localStorage format if present
+            const oldConfig = localStorage.getItem('firebaseConfig');
+            if (oldConfig && !localStorage.getItem('appFirebaseConfig')) {
+                localStorage.setItem('appFirebaseConfig', oldConfig);
+            }
+            localStorage.removeItem('firebaseConfig');
+
             const savedUser = localStorage.getItem('currentUser');
-            const savedConfig = localStorage.getItem('firebaseConfig');
-            
+            const savedConfig = localStorage.getItem('appFirebaseConfig');
+
             if (savedUser && savedConfig) {
                 currentUser = JSON.parse(savedUser);
                 firebaseConfig = JSON.parse(savedConfig);
-                initializeFirebase();
-                showMainApp();
+                connectToFirebase(firebaseConfig, function(success) {
+                    if (success) {
+                        updateConnectionStatus(true);
+                        showMainApp();
+                        loadData();
+                    } else {
+                        updateConnectionStatus(false);
+                        showMainApp();
+                        loadDemoData();
+                    }
+                });
             } else {
                 document.getElementById('loginScreen').style.display = 'flex';
             }
         }
 
-        // Login function
-        function login() {
-            const username = document.getElementById('loginUsername').value;
-            const firebaseKey = document.getElementById('firebaseKey').value;
-            const databaseURL = document.getElementById('firebaseDatabaseURL').value.trim();
+        // Shared Firebase connection helper
+        function connectToFirebase(config, callback) {
+            var doInit = function() {
+                try {
+                    firebase.initializeApp(config);
+                    database = firebase.database();
 
-            if (!username || !firebaseKey || !databaseURL) {
-                alert('Please enter username, Firebase API key, and Database URL');
-                return;
+                    var resolved = false;
+                    var timeout = setTimeout(function() {
+                        if (!resolved) {
+                            resolved = true;
+                            callback(false);
+                        }
+                    }, 8000);
+
+                    database.ref('.info/connected').once('value').then(function() {
+                        if (!resolved) {
+                            resolved = true;
+                            clearTimeout(timeout);
+                            callback(true);
+                        }
+                    }).catch(function() {
+                        if (!resolved) {
+                            resolved = true;
+                            clearTimeout(timeout);
+                            callback(false);
+                        }
+                    });
+                } catch (error) {
+                    console.error('Firebase init error:', error);
+                    callback(false);
+                }
+            };
+
+            if (firebase.apps.length > 0) {
+                firebase.app().delete().then(doInit).catch(doInit);
+            } else {
+                doInit();
             }
+        }
 
-            // Derive project ID from the database URL (e.g. https://my-project.firebaseio.com -> my-project)
-            let projectId = '';
+        // Switch between Login and Sign Up tabs
+        function switchAuthTab(tab) {
+            document.getElementById('loginForm').style.display = (tab === 'login') ? 'block' : 'none';
+            document.getElementById('signupForm').style.display = (tab === 'signup') ? 'block' : 'none';
+            document.getElementById('loginTabBtn').classList.toggle('active', tab === 'login');
+            document.getElementById('signupTabBtn').classList.toggle('active', tab === 'signup');
+        }
+
+        // Parse Firebase SDK config from pasted text
+        function parseFirebaseConfig(input) {
+            var text = input.trim();
+            var firstBrace = text.indexOf('{');
+            var lastBrace = text.lastIndexOf('}');
+            if (firstBrace === -1 || lastBrace === -1 || lastBrace <= firstBrace) return null;
+
+            var objStr = text.substring(firstBrace, lastBrace + 1);
+            // Quote unquoted keys (JS object notation → JSON)
+            objStr = objStr.replace(/([{,]\s*)([a-zA-Z_]\w*)\s*:/g, '$1"$2":');
+            // Remove trailing commas before closing braces
+            objStr = objStr.replace(/,(\s*[}\]])/g, '$1');
+
             try {
-                const url = new URL(databaseURL);
-                projectId = url.hostname.split('.')[0];
+                var config = JSON.parse(objStr);
+                if (!config.apiKey || !config.databaseURL || !config.projectId) return null;
+                return config;
             } catch (e) {
-                alert('Invalid Database URL. Please enter a valid Firebase Realtime Database URL.');
+                return null;
+            }
+        }
+
+        // Sign Up — create a new user account
+        function signUp() {
+            var username = document.getElementById('signupUsername').value.trim();
+            var password = document.getElementById('signupPassword').value;
+            var confirmPassword = document.getElementById('signupConfirmPassword').value;
+            var configText = document.getElementById('signupFirebaseConfig').value;
+
+            if (!username || !password || !confirmPassword) {
+                alert('Please fill in all fields.');
+                return;
+            }
+            if (password !== confirmPassword) {
+                alert('Passwords do not match.');
+                return;
+            }
+            if (password.length < 4) {
+                alert('Password must be at least 4 characters.');
                 return;
             }
 
-            currentUser = {
-                username: username,
-                createdAt: new Date().toISOString()
-            };
+            var config = parseFirebaseConfig(configText);
+            if (!config) {
+                alert('Invalid Firebase configuration. Please paste the complete firebaseConfig object from your Firebase Console.');
+                return;
+            }
 
-            firebaseConfig = {
-                apiKey: firebaseKey,
-                authDomain: projectId + ".firebaseapp.com",
-                databaseURL: databaseURL,
-                projectId: projectId,
-                storageBucket: projectId + ".appspot.com",
-                messagingSenderId: "",
-                appId: ""
-            };
+            firebaseConfig = config;
+            connectToFirebase(config, function(success) {
+                if (!success) {
+                    alert('Could not connect to Firebase. Please check your configuration and try again.');
+                    return;
+                }
 
-            localStorage.setItem('currentUser', JSON.stringify(currentUser));
-            localStorage.setItem('firebaseConfig', JSON.stringify(firebaseConfig));
+                database.ref('_app_users/' + username).once('value').then(function(snapshot) {
+                    if (snapshot.exists()) {
+                        alert('Username already taken. Please choose a different username.');
+                        return;
+                    }
 
-            initializeFirebase();
-            showMainApp();
+                    var userData = {
+                        username: username,
+                        password: btoa(password),
+                        createdAt: new Date().toISOString()
+                    };
+
+                    database.ref('_app_users/' + username).set(userData).then(function() {
+                        localStorage.setItem('appFirebaseConfig', JSON.stringify(config));
+                        currentUser = { username: username, createdAt: userData.createdAt };
+                        localStorage.setItem('currentUser', JSON.stringify(currentUser));
+
+                        updateConnectionStatus(true);
+                        showMainApp();
+                        loadData();
+                    }).catch(function(err) {
+                        alert('Failed to create account: ' + err.message);
+                    });
+                }).catch(function(err) {
+                    alert('Error checking username: ' + err.message);
+                });
+            });
+        }
+
+        // Login — authenticate with username and password
+        function loginUser() {
+            var username = document.getElementById('loginUsername').value.trim();
+            var password = document.getElementById('loginPassword').value;
+
+            if (!username || !password) {
+                alert('Please enter both username and password.');
+                return;
+            }
+
+            var savedConfig = localStorage.getItem('appFirebaseConfig');
+            if (!savedConfig) {
+                alert('No app has been configured on this device yet. Please use Sign Up first to set up the Firebase connection.');
+                return;
+            }
+
+            var config = JSON.parse(savedConfig);
+            firebaseConfig = config;
+
+            connectToFirebase(config, function(success) {
+                if (!success) {
+                    alert('Could not connect to Firebase. The stored configuration may be invalid. Try signing up again.');
+                    return;
+                }
+
+                database.ref('_app_users/' + username).once('value').then(function(snapshot) {
+                    if (!snapshot.exists()) {
+                        alert('User not found. Please check your username or sign up first.');
+                        return;
+                    }
+
+                    var userData = snapshot.val();
+                    try {
+                        if (atob(userData.password) !== password) {
+                            alert('Incorrect password.');
+                            return;
+                        }
+                    } catch (e) {
+                        alert('Incorrect password.');
+                        return;
+                    }
+
+                    currentUser = { username: username, createdAt: userData.createdAt };
+                    localStorage.setItem('currentUser', JSON.stringify(currentUser));
+
+                    updateConnectionStatus(true);
+                    showMainApp();
+                    loadData();
+                }).catch(function(err) {
+                    alert('Login error: ' + err.message);
+                });
+            });
+        }
+
+        // Show Manage Accounts modal
+        function showManageAccounts() {
+            document.getElementById('adminPanel').classList.add('active');
+            document.getElementById('adminAuth').style.display = 'block';
+            document.getElementById('adminDashboard').style.display = 'none';
+            document.getElementById('adminPassword').value = '';
+            // Show Firebase config field only if no cached config
+            var hasConfig = !!localStorage.getItem('appFirebaseConfig');
+            document.getElementById('adminConfigField').style.display = hasConfig ? 'none' : 'block';
+        }
+
+        // Authenticate admin and load user list
+        function authenticateAdmin() {
+            var password = document.getElementById('adminPassword').value;
+            if (password !== 'SafetyPassKey') {
+                alert('Incorrect admin password.');
+                return;
+            }
+
+            var config;
+            var savedConfig = localStorage.getItem('appFirebaseConfig');
+            if (savedConfig) {
+                config = JSON.parse(savedConfig);
+            } else {
+                var configText = document.getElementById('adminFirebaseConfig').value;
+                config = parseFirebaseConfig(configText);
+                if (!config) {
+                    alert('Please paste a valid Firebase configuration.');
+                    return;
+                }
+            }
+
+            connectToFirebase(config, function(success) {
+                if (!success) {
+                    alert('Could not connect to Firebase. Check the configuration.');
+                    return;
+                }
+
+                database.ref('_app_users').once('value').then(function(snapshot) {
+                    var users = snapshot.val() || {};
+                    document.getElementById('adminAuth').style.display = 'none';
+                    document.getElementById('adminDashboard').style.display = 'block';
+                    renderAdminUserList(users);
+                }).catch(function(err) {
+                    alert('Error loading users: ' + err.message);
+                });
+            });
+        }
+
+        // Render admin user list
+        function renderAdminUserList(users) {
+            var list = document.getElementById('adminUserList');
+            var entries = Object.entries(users);
+
+            if (entries.length === 0) {
+                list.innerHTML = '<div style="text-align:center;color:#999;padding:30px;">No accounts found.</div>';
+                return;
+            }
+
+            list.innerHTML = entries.map(function(entry) {
+                var key = entry[0];
+                var u = entry[1];
+                var created = u.createdAt ? new Date(u.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : 'Unknown';
+                return '<div class="admin-user-row">' +
+                    '<div class="user-info">' +
+                    '<div class="username">' + u.username + '</div>' +
+                    '<div class="created">Created: ' + created + '</div>' +
+                    '</div>' +
+                    '<button class="btn-small btn-remove-stakeholder" onclick="deleteUserAccount(\'' + key + '\')">Delete</button>' +
+                    '</div>';
+            }).join('');
+        }
+
+        // Delete a user account from admin panel
+        function deleteUserAccount(username) {
+            if (!confirm('Are you sure you want to delete the account "' + username + '"? This cannot be undone.')) return;
+
+            database.ref('_app_users/' + username).remove().then(function() {
+                // If the deleted user is the currently logged-in user, clear session
+                if (currentUser && currentUser.username === username) {
+                    localStorage.removeItem('currentUser');
+                }
+                // Refresh the list
+                database.ref('_app_users').once('value').then(function(snapshot) {
+                    renderAdminUserList(snapshot.val() || {});
+                });
+            }).catch(function(err) {
+                alert('Error deleting account: ' + err.message);
+            });
+        }
+
+        // Close admin panel
+        function closeAdminPanel() {
+            document.getElementById('adminPanel').classList.remove('active');
         }
 
         // Update connection status indicator in sidebar
@@ -1680,65 +2074,6 @@
                 statusEl.innerHTML = '<span class="connection-dot online"></span><span class="connection-label">Connected to Firebase</span>';
             } else {
                 statusEl.innerHTML = '<span class="connection-dot offline"></span><span class="connection-label">Offline (Demo Mode)</span>';
-            }
-        }
-
-        // Initialize Firebase
-        function initializeFirebase() {
-            try {
-                // Delete any existing Firebase app to ensure fresh config is used
-                if (firebase.apps.length > 0) {
-                    firebase.app().delete().then(() => {
-                        doFirebaseInit();
-                    }).catch(() => {
-                        doFirebaseInit();
-                    });
-                } else {
-                    doFirebaseInit();
-                }
-            } catch (error) {
-                console.error('Firebase initialization error:', error);
-                updateConnectionStatus(false);
-                loadDemoData();
-            }
-        }
-
-        function doFirebaseInit() {
-            try {
-                firebase.initializeApp(firebaseConfig);
-                database = firebase.database();
-
-                // Test real connectivity with a one-time read + timeout
-                let resolved = false;
-                const timeout = setTimeout(() => {
-                    if (!resolved) {
-                        resolved = true;
-                        console.warn('Firebase connection timed out — falling back to demo mode.');
-                        updateConnectionStatus(false);
-                        loadDemoData();
-                    }
-                }, 8000);
-
-                database.ref('.info/connected').once('value').then((snap) => {
-                    if (!resolved) {
-                        resolved = true;
-                        clearTimeout(timeout);
-                        updateConnectionStatus(true);
-                        loadData();
-                    }
-                }).catch((err) => {
-                    if (!resolved) {
-                        resolved = true;
-                        clearTimeout(timeout);
-                        console.error('Firebase connection failed:', err);
-                        updateConnectionStatus(false);
-                        loadDemoData();
-                    }
-                });
-            } catch (error) {
-                console.error('Firebase init error:', error);
-                updateConnectionStatus(false);
-                loadDemoData();
             }
         }
 
@@ -1874,7 +2209,7 @@
         // Logout
         function logout() {
             localStorage.removeItem('currentUser');
-            localStorage.removeItem('firebaseConfig');
+            // Keep appFirebaseConfig so Login tab works on next visit
             location.reload();
         }
 
