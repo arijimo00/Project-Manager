@@ -496,18 +496,221 @@
             animation: slideDown 0.3s ease;
         }
 
-        /* Gantt Chart Placeholder */
+        /* Gantt Chart */
         .gantt-container {
             background: white;
             padding: 30px;
             border-radius: 15px;
             box-shadow: 0 5px 20px rgba(0,0,0,0.05);
-            min-height: 500px;
+            min-height: 400px;
+            overflow-x: auto;
+        }
+
+        .gantt-empty {
             display: flex;
             align-items: center;
             justify-content: center;
-            color: #666;
+            min-height: 300px;
+            color: #999;
+            font-size: 16px;
+            text-align: center;
+        }
+
+        .gantt-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .gantt-header h3 {
             font-size: 18px;
+            color: #1a1a2e;
+        }
+
+        .gantt-legend {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .gantt-legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            color: #666;
+        }
+
+        .gantt-legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 3px;
+        }
+
+        .gantt-chart {
+            position: relative;
+            min-width: 600px;
+        }
+
+        .gantt-timeline-header {
+            display: flex;
+            border-bottom: 2px solid #e0e0e0;
+            margin-left: 200px;
+            margin-bottom: 5px;
+        }
+
+        .gantt-month-label {
+            font-size: 11px;
+            font-weight: 600;
+            color: #667eea;
+            text-transform: uppercase;
+            padding: 5px 0;
+            border-left: 1px solid #e0e0e0;
+            text-align: center;
+            box-sizing: border-box;
+        }
+
+        .gantt-row {
+            display: flex;
+            align-items: stretch;
+            min-height: 44px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .gantt-row:hover {
+            background: #fafafe;
+        }
+
+        .gantt-row-label {
+            width: 200px;
+            min-width: 200px;
+            padding: 10px 12px;
+            font-size: 13px;
+            font-weight: 500;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            border-right: 2px solid #e0e0e0;
+        }
+
+        .gantt-row-label .project-name {
+            font-weight: 600;
+            color: #1a1a2e;
+            margin-bottom: 2px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .gantt-row-label .project-account {
+            font-size: 11px;
+            color: #999;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .gantt-row-bars {
+            flex: 1;
+            position: relative;
+            min-height: 44px;
+        }
+
+        .gantt-bar {
+            position: absolute;
+            height: 24px;
+            top: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: opacity 0.2s, transform 0.2s;
+            display: flex;
+            align-items: center;
+            padding: 0 8px;
+            font-size: 11px;
+            font-weight: 600;
+            color: white;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            min-width: 4px;
+        }
+
+        .gantt-bar:hover {
+            opacity: 0.85;
+            transform: scaleY(1.15);
+            z-index: 10;
+        }
+
+        .gantt-bar.status-received { background: linear-gradient(135deg, #42a5f5, #1976d2); }
+        .gantt-bar.status-first-response { background: linear-gradient(135deg, #ab47bc, #7b1fa2); }
+        .gantt-bar.status-in-pipeline { background: linear-gradient(135deg, #ffa726, #f57c00); }
+        .gantt-bar.status-in-progress { background: linear-gradient(135deg, #66bb6a, #388e3c); }
+        .gantt-bar.status-delivered { background: linear-gradient(135deg, #26a69a, #00796b); }
+        .gantt-bar.status-on-pause { background: linear-gradient(135deg, #ef5350, #c2185b); }
+
+        .gantt-bar-phase {
+            opacity: 0.75;
+            top: 10px;
+        }
+
+        .gantt-bar-phase:nth-child(even) {
+            top: 22px;
+            height: 18px;
+            font-size: 10px;
+        }
+
+        .gantt-today-line {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: #ef5350;
+            z-index: 5;
+            pointer-events: none;
+        }
+
+        .gantt-today-label {
+            position: absolute;
+            top: -18px;
+            font-size: 10px;
+            font-weight: 600;
+            color: #ef5350;
+            transform: translateX(-50%);
+            white-space: nowrap;
+        }
+
+        .gantt-grid-lines {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+        }
+
+        .gantt-grid-line {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 1px;
+            background: #f0f0f0;
+        }
+
+        .gantt-tooltip {
+            position: fixed;
+            background: #1a1a2e;
+            color: white;
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 12px;
+            z-index: 3000;
+            pointer-events: none;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            max-width: 250px;
+            line-height: 1.5;
+            display: none;
         }
 
         /* Buttons */
@@ -881,16 +1084,11 @@
                     <h1>Timeline Dashboard</h1>
                     <p>View project timelines and resource allocation</p>
                 </div>
-                
-                <div class="gantt-container">
-                    <div>
-                        <h3>Gantt Chart Visualization</h3>
-                        <p>Interactive timeline view will be implemented here</p>
-                        <p style="font-size: 14px; color: #999; margin-top: 10px;">
-                            Features: Resource allocation, timeline conflicts, workload visualization
-                        </p>
-                    </div>
+
+                <div class="gantt-container" id="ganttContainer">
+                    <!-- Rendered dynamically by renderGanttChart() -->
                 </div>
+                <div class="gantt-tooltip" id="ganttTooltip"></div>
             </div>
 
             <!-- Resources Tab -->
@@ -1093,6 +1291,7 @@
             updateAccountsDisplay();
             updateResourcesDisplay();
             populateDropdowns();
+            renderGanttChart();
         }
 
         // Tab switching
@@ -1473,9 +1672,211 @@
             });
         }
 
-        // Update projects display (refresh account cards to show correct active project counts)
+        // Update projects display (refresh account cards and Gantt chart)
         function updateProjectsDisplay() {
             updateAccountsDisplay();
+            renderGanttChart();
+        }
+
+        // Render the Gantt chart
+        function renderGanttChart() {
+            const container = document.getElementById('ganttContainer');
+            const projectList = Object.entries(projects);
+
+            if (projectList.length === 0) {
+                container.innerHTML = '<div class="gantt-empty"><div><h3 style="margin-bottom:10px;color:#666;">No Projects Yet</h3><p>Create projects from the Dashboard Entry tab to see them here.</p></div></div>';
+                return;
+            }
+
+            // Collect all date segments (bars) from projects
+            const bars = [];
+            projectList.forEach(([id, p]) => {
+                const accountName = (p.account && accounts[p.account]) ? accounts[p.account].name : 'Unknown';
+                const projectName = p.projectName || p.serialNumber || id;
+
+                if (p.deliveryType === 'multi' && p.delivery && p.delivery.phases) {
+                    p.delivery.phases.forEach(phase => {
+                        if (phase.startingDate && phase.deliveryDate) {
+                            bars.push({
+                                id: id,
+                                name: projectName,
+                                account: accountName,
+                                status: p.status || 'received',
+                                start: new Date(phase.startingDate),
+                                end: new Date(phase.deliveryDate),
+                                label: 'Phase ' + phase.phase,
+                                isPhase: true
+                            });
+                        }
+                    });
+                } else {
+                    // Single delivery or legacy format
+                    let startDate = null;
+                    let endDate = null;
+
+                    if (p.delivery) {
+                        startDate = p.delivery.startingDate ? new Date(p.delivery.startingDate) : null;
+                        endDate = p.delivery.deliveryDate ? new Date(p.delivery.deliveryDate) : null;
+                    }
+                    // Fallback for legacy data
+                    if (!startDate && p.createdAt) startDate = new Date(p.createdAt);
+                    if (!endDate && p.deliveryTimeline) endDate = new Date(p.deliveryTimeline);
+
+                    if (startDate && endDate && !isNaN(startDate) && !isNaN(endDate)) {
+                        bars.push({
+                            id: id,
+                            name: projectName,
+                            account: accountName,
+                            status: p.status || 'received',
+                            start: startDate,
+                            end: endDate,
+                            label: '',
+                            isPhase: false
+                        });
+                    }
+                }
+            });
+
+            if (bars.length === 0) {
+                container.innerHTML = '<div class="gantt-empty"><div><h3 style="margin-bottom:10px;color:#666;">No Dates Available</h3><p>Add starting and delivery dates to your projects to see the timeline.</p></div></div>';
+                return;
+            }
+
+            // Compute global date range with padding
+            let minDate = new Date(Math.min(...bars.map(b => b.start.getTime())));
+            let maxDate = new Date(Math.max(...bars.map(b => b.end.getTime())));
+            // Pad by 7 days on each side
+            minDate.setDate(minDate.getDate() - 7);
+            maxDate.setDate(maxDate.getDate() + 7);
+
+            const totalDays = Math.ceil((maxDate - minDate) / (1000 * 60 * 60 * 24));
+            const dayWidth = Math.max(4, Math.min(20, 800 / totalDays));
+            const chartWidth = totalDays * dayWidth;
+
+            // Group bars by project id (to show multi-phase on same row)
+            const projectRows = {};
+            bars.forEach(bar => {
+                if (!projectRows[bar.id]) {
+                    projectRows[bar.id] = { name: bar.name, account: bar.account, bars: [] };
+                }
+                projectRows[bar.id].bars.push(bar);
+            });
+
+            // Build month labels
+            let monthLabelsHTML = '';
+            const tempDate = new Date(minDate);
+            tempDate.setDate(1);
+            if (tempDate < minDate) tempDate.setMonth(tempDate.getMonth() + 1);
+
+            const months = [];
+            while (tempDate <= maxDate) {
+                const monthStart = new Date(tempDate);
+                const nextMonth = new Date(tempDate);
+                nextMonth.setMonth(nextMonth.getMonth() + 1);
+                const monthEnd = nextMonth > maxDate ? maxDate : nextMonth;
+
+                const startOffset = Math.max(0, (monthStart - minDate) / (1000 * 60 * 60 * 24));
+                const endOffset = (monthEnd - minDate) / (1000 * 60 * 60 * 24);
+                const width = (endOffset - startOffset) * dayWidth;
+
+                months.push({
+                    label: monthStart.toLocaleString('default', { month: 'short', year: 'numeric' }),
+                    left: startOffset * dayWidth,
+                    width: width
+                });
+
+                tempDate.setMonth(tempDate.getMonth() + 1);
+            }
+            monthLabelsHTML = months.map(m =>
+                `<div class="gantt-month-label" style="width:${m.width}px;min-width:${m.width}px;">${m.label}</div>`
+            ).join('');
+
+            // Build grid lines (one per month boundary)
+            let gridLinesHTML = months.map(m =>
+                `<div class="gantt-grid-line" style="left:${m.left}px;"></div>`
+            ).join('');
+
+            // Today line
+            const today = new Date();
+            let todayLineHTML = '';
+            if (today >= minDate && today <= maxDate) {
+                const todayOffset = ((today - minDate) / (1000 * 60 * 60 * 24)) * dayWidth;
+                todayLineHTML = `<div class="gantt-today-line" style="left:${todayOffset}px;"><div class="gantt-today-label">Today</div></div>`;
+            }
+
+            // Build rows
+            let rowsHTML = '';
+            Object.values(projectRows).forEach(proj => {
+                let barsHTML = '';
+                proj.bars.forEach(bar => {
+                    const startOffset = ((bar.start - minDate) / (1000 * 60 * 60 * 24)) * dayWidth;
+                    const barWidth = Math.max(4, ((bar.end - bar.start) / (1000 * 60 * 60 * 24)) * dayWidth);
+                    const phaseClass = bar.isPhase ? ' gantt-bar-phase' : '';
+                    const barLabel = bar.isPhase ? bar.label : '';
+                    const statusClass = 'status-' + bar.status;
+
+                    const startStr = bar.start.toLocaleDateString();
+                    const endStr = bar.end.toLocaleDateString();
+                    const days = Math.ceil((bar.end - bar.start) / (1000 * 60 * 60 * 24));
+                    const tooltipData = `${bar.name}${bar.isPhase ? ' - ' + bar.label : ''}|${startStr} - ${endStr}|${days} days | ${bar.status.replace('-', ' ')}`;
+
+                    barsHTML += `<div class="gantt-bar ${statusClass}${phaseClass}" style="left:${startOffset}px;width:${barWidth}px;" onmouseenter="showGanttTooltip(event, '${tooltipData.replace(/'/g, "\\'")}')" onmouseleave="hideGanttTooltip()">${barLabel}</div>`;
+                });
+
+                rowsHTML += `
+                    <div class="gantt-row">
+                        <div class="gantt-row-label">
+                            <div class="project-name" title="${proj.name}">${proj.name}</div>
+                            <div class="project-account">${proj.account}</div>
+                        </div>
+                        <div class="gantt-row-bars" style="width:${chartWidth}px;min-width:${chartWidth}px;">
+                            <div class="gantt-grid-lines">${gridLinesHTML}${todayLineHTML}</div>
+                            ${barsHTML}
+                        </div>
+                    </div>
+                `;
+            });
+
+            // Status legend
+            const statusColors = [
+                { label: 'Received', cls: 'status-received' },
+                { label: 'First Response', cls: 'status-first-response' },
+                { label: 'In Pipeline', cls: 'status-in-pipeline' },
+                { label: 'In Progress', cls: 'status-in-progress' },
+                { label: 'Delivered', cls: 'status-delivered' },
+                { label: 'On Pause', cls: 'status-on-pause' }
+            ];
+            const legendHTML = statusColors.map(s => {
+                const div = document.createElement('div');
+                div.className = 'gantt-bar ' + s.cls;
+                // We need the computed background; use a simple mapping instead
+                return `<div class="gantt-legend-item"><div class="gantt-legend-color gantt-bar ${s.cls}" style="width:12px;height:12px;position:static;border-radius:3px;"></div>${s.label}</div>`;
+            }).join('');
+
+            container.innerHTML = `
+                <div class="gantt-header">
+                    <h3>Project Timeline</h3>
+                    <div class="gantt-legend">${legendHTML}</div>
+                </div>
+                <div class="gantt-chart">
+                    <div class="gantt-timeline-header" style="width:${chartWidth}px;min-width:${chartWidth}px;">${monthLabelsHTML}</div>
+                    ${rowsHTML}
+                </div>
+            `;
+        }
+
+        // Gantt tooltip
+        function showGanttTooltip(event, data) {
+            const tooltip = document.getElementById('ganttTooltip');
+            const parts = data.split('|');
+            tooltip.innerHTML = parts.map((p, i) => i === 0 ? `<strong>${p}</strong>` : p).join('<br>');
+            tooltip.style.display = 'block';
+            tooltip.style.left = (event.clientX + 12) + 'px';
+            tooltip.style.top = (event.clientY - 10) + 'px';
+        }
+
+        function hideGanttTooltip() {
+            document.getElementById('ganttTooltip').style.display = 'none';
         }
 
         // Toggle resource details
