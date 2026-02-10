@@ -698,6 +698,42 @@
             background: #f0f0f0;
         }
 
+        .gantt-dayoff {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .gantt-dayoff-weekend {
+            background: rgba(0, 0, 0, 0.04);
+        }
+
+        .gantt-dayoff-holiday {
+            background: rgba(239, 83, 80, 0.10);
+        }
+
+        .gantt-dayoff-leave {
+            background: rgba(255, 167, 38, 0.12);
+        }
+
+        .gantt-dayoff-labels {
+            position: relative;
+            margin-left: 200px;
+            height: 0;
+        }
+
+        .gantt-dayoff-flag {
+            position: absolute;
+            top: -14px;
+            font-size: 8px;
+            font-weight: 600;
+            color: #c2185b;
+            transform: translateX(-50%);
+            white-space: nowrap;
+        }
+
         .gantt-tooltip {
             position: fixed;
             background: #1a1a2e;
@@ -1698,6 +1734,57 @@
             updateSelectedTags('secondaryStakeholders', labelMap);
         }
 
+        // Helper: get a Set of holiday date strings (YYYY-MM-DD)
+        function getHolidaySet() {
+            const set = new Set();
+            Object.values(holidays).forEach(h => { set.add(h.date); });
+            return set;
+        }
+
+        // Helper: check if a date falls within any leave for given resource IDs
+        function isResourceOnLeave(dateStr, resourceIds) {
+            return Object.values(leaves).some(lv =>
+                resourceIds.includes(lv.resourceId) &&
+                dateStr >= lv.startDate && dateStr <= lv.endDate
+            );
+        }
+
+        // Helper: format Date to YYYY-MM-DD
+        function toDateStr(d) {
+            return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+        }
+
+        // Helper: check if a date is a non-working day (weekend, holiday, or all selected resources on leave)
+        function isNonWorkingDay(date, holidaySet, resourceIds) {
+            const day = date.getDay();
+            if (day === 0 || day === 6) return true; // Sunday or Saturday
+            const dateStr = toDateStr(date);
+            if (holidaySet.has(dateStr)) return true;
+            // If resource IDs provided, check if ALL resources are on leave that day
+            if (resourceIds && resourceIds.length > 0) {
+                const allOnLeave = resourceIds.every(rid =>
+                    Object.values(leaves).some(lv =>
+                        lv.resourceId === rid && dateStr >= lv.startDate && dateStr <= lv.endDate
+                    )
+                );
+                if (allOnLeave) return true;
+            }
+            return false;
+        }
+
+        // Calculate delivery date by adding working days from a start date
+        function addWorkingDays(startDate, workingDaysNeeded, holidaySet, resourceIds) {
+            const result = new Date(startDate);
+            let added = 0;
+            while (added < workingDaysNeeded) {
+                result.setDate(result.getDate() + 1);
+                if (!isNonWorkingDay(result, holidaySet, resourceIds)) {
+                    added++;
+                }
+            }
+            return result;
+        }
+
         // Calculate suggested timeline
         function calculateTimeline() {
             const bandwidth = parseInt(document.getElementById('bandwidth').value) || 0;
@@ -1714,21 +1801,30 @@
                     }
                 });
 
-                // Calculate days needed with resource distribution
-                const effectiveDays = Math.ceil(bandwidth / totalEfficiency) + 1; // +1 day buffer
+                // Calculate working days needed with resource distribution
+                const effectiveWorkingDays = Math.ceil(bandwidth / totalEfficiency) + 1; // +1 day buffer
 
-                // Set starting date to today and delivery date based on calculation
-                const startDate = new Date();
-                const endDate = new Date(startDate);
-                endDate.setDate(endDate.getDate() + effectiveDays);
+                // Set starting date to today (skip to next working day if today is off)
+                const holidaySet = getHolidaySet();
+                let startDate = new Date();
+                while (isNonWorkingDay(startDate, holidaySet, selectedResourceIds)) {
+                    startDate.setDate(startDate.getDate() + 1);
+                }
 
-                const startISO = startDate.toISOString().split('T')[0];
-                const endISO = endDate.toISOString().split('T')[0];
+                // Calculate end date by walking forward through working days only
+                const endDate = addWorkingDays(startDate, effectiveWorkingDays, holidaySet, selectedResourceIds);
+
+                // Count total calendar days for display
+                const calendarDays = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
+
+                const startISO = toDateStr(startDate);
+                const endISO = toDateStr(endDate);
 
                 // Update single delivery fields
                 document.getElementById('startingDate').value = startISO;
                 document.getElementById('deliveryTimeline').value = endISO;
-                document.getElementById('suggestedTimeline').textContent = `Suggested: ${effectiveDays} days with selected resources`;
+                document.getElementById('suggestedTimeline').textContent =
+                    `Suggested: ${effectiveWorkingDays} working days (${calendarDays} calendar days) — excludes weekends, holidays & leaves`;
 
                 // If multi-phase, auto-fill first phase dates
                 const firstPhase = document.querySelector('#phasesContainer .phase-row');
@@ -2003,6 +2099,36 @@
                 `<div class="gantt-grid-line" style="left:${m.left}px;"></div>`
             ).join('');
 
+            // Build day-off shading (weekends, holidays, leaves)
+            const holidaySet = getHolidaySet();
+            let dayOffHTML = '';
+            let dayOffHeaderHTML = '';
+            const iterDate = new Date(minDate);
+            while (iterDate <= maxDate) {
+                const dayOffset = ((iterDate - minDate) / (1000 * 60 * 60 * 24)) * dayWidth;
+                const dateStr = toDateStr(iterDate);
+                const dayOfWeek = iterDate.getDay();
+
+                if (dayOfWeek === 0 || dayOfWeek === 6) {
+                    dayOffHTML += `<div class="gantt-dayoff gantt-dayoff-weekend" style="left:${dayOffset}px;width:${dayWidth}px;"></div>`;
+                } else if (holidaySet.has(dateStr)) {
+                    dayOffHTML += `<div class="gantt-dayoff gantt-dayoff-holiday" style="left:${dayOffset}px;width:${dayWidth}px;"></div>`;
+                    // Show flag on header for holidays (only if wide enough to see)
+                    if (dayWidth >= 6) {
+                        const hName = Object.values(holidays).find(h => h.date === dateStr);
+                        dayOffHeaderHTML += `<div class="gantt-dayoff-flag" style="left:${dayOffset + dayWidth / 2}px;" title="${hName ? hName.name : 'Holiday'}">H</div>`;
+                    }
+                }
+
+                // Check for leaves on this day (any resource)
+                const leavesOnDay = Object.values(leaves).filter(lv => dateStr >= lv.startDate && dateStr <= lv.endDate);
+                if (leavesOnDay.length > 0 && dayOfWeek !== 0 && dayOfWeek !== 6 && !holidaySet.has(dateStr)) {
+                    dayOffHTML += `<div class="gantt-dayoff gantt-dayoff-leave" style="left:${dayOffset}px;width:${dayWidth}px;"></div>`;
+                }
+
+                iterDate.setDate(iterDate.getDate() + 1);
+            }
+
             // Today line
             const today = new Date();
             let todayLineHTML = '';
@@ -2024,8 +2150,15 @@
 
                     const startStr = bar.start.toLocaleDateString();
                     const endStr = bar.end.toLocaleDateString();
-                    const days = Math.ceil((bar.end - bar.start) / (1000 * 60 * 60 * 24));
-                    const tooltipData = `${bar.name}${bar.isPhase ? ' - ' + bar.label : ''}|${startStr} - ${endStr}|${days} days | ${bar.status.replace('-', ' ')}`;
+                    const totalCalDays = Math.ceil((bar.end - bar.start) / (1000 * 60 * 60 * 24));
+                    // Count working days for tooltip
+                    let workDays = 0;
+                    const countDate = new Date(bar.start);
+                    while (countDate <= bar.end) {
+                        if (!isNonWorkingDay(countDate, holidaySet, [])) workDays++;
+                        countDate.setDate(countDate.getDate() + 1);
+                    }
+                    const tooltipData = `${bar.name}${bar.isPhase ? ' - ' + bar.label : ''}|${startStr} - ${endStr}|${workDays} working days (${totalCalDays} cal) | ${bar.status.replace('-', ' ')}`;
 
                     barsHTML += `<div class="gantt-bar ${statusClass}${phaseClass}" style="left:${startOffset}px;width:${barWidth}px;" onmouseenter="showGanttTooltip(event, '${tooltipData.replace(/'/g, "\\'")}')" onmouseleave="hideGanttTooltip()">${barLabel}</div>`;
                 });
@@ -2037,14 +2170,14 @@
                             <div class="project-account">${proj.account}</div>
                         </div>
                         <div class="gantt-row-bars" style="width:${chartWidth}px;min-width:${chartWidth}px;">
-                            <div class="gantt-grid-lines">${gridLinesHTML}${todayLineHTML}</div>
+                            <div class="gantt-grid-lines">${gridLinesHTML}${dayOffHTML}${todayLineHTML}</div>
                             ${barsHTML}
                         </div>
                     </div>
                 `;
             });
 
-            // Status legend
+            // Status legend + day-off legend
             const statusColors = [
                 { label: 'Received', cls: 'status-received' },
                 { label: 'First Response', cls: 'status-first-response' },
@@ -2054,18 +2187,22 @@
                 { label: 'On Pause', cls: 'status-on-pause' }
             ];
             const legendHTML = statusColors.map(s => {
-                const div = document.createElement('div');
-                div.className = 'gantt-bar ' + s.cls;
-                // We need the computed background; use a simple mapping instead
                 return `<div class="gantt-legend-item"><div class="gantt-legend-color gantt-bar ${s.cls}" style="width:12px;height:12px;position:static;border-radius:3px;"></div>${s.label}</div>`;
             }).join('');
+
+            const dayOffLegendHTML = `
+                <div class="gantt-legend-item"><div style="width:12px;height:12px;border-radius:3px;background:rgba(0,0,0,0.06);border:1px solid #ddd;"></div>Weekend</div>
+                <div class="gantt-legend-item"><div style="width:12px;height:12px;border-radius:3px;background:rgba(239,83,80,0.15);border:1px solid #ef9a9a;"></div>Holiday</div>
+                <div class="gantt-legend-item"><div style="width:12px;height:12px;border-radius:3px;background:rgba(255,167,38,0.18);border:1px solid #ffcc80;"></div>Leave</div>
+            `;
 
             container.innerHTML = `
                 <div class="gantt-header">
                     <h3>Project Timeline</h3>
-                    <div class="gantt-legend">${legendHTML}</div>
+                    <div class="gantt-legend">${legendHTML}${dayOffLegendHTML}</div>
                 </div>
                 <div class="gantt-chart">
+                    <div class="gantt-dayoff-labels" style="width:${chartWidth}px;min-width:${chartWidth}px;">${dayOffHeaderHTML}</div>
                     <div class="gantt-timeline-header" style="width:${chartWidth}px;min-width:${chartWidth}px;">${monthLabelsHTML}</div>
                     ${rowsHTML}
                 </div>
