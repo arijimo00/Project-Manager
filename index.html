@@ -503,7 +503,6 @@
             border-radius: 15px;
             box-shadow: 0 5px 20px rgba(0,0,0,0.05);
             min-height: 400px;
-            overflow-x: auto;
         }
 
         .gantt-empty {
@@ -548,15 +547,39 @@
             border-radius: 3px;
         }
 
+        .gantt-scroll-wrapper {
+            position: relative;
+            overflow: auto;
+            max-height: 70vh;
+        }
+
         .gantt-chart {
             position: relative;
             min-width: 600px;
         }
 
+        .gantt-sticky-header {
+            position: sticky;
+            top: 0;
+            z-index: 20;
+            background: white;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .gantt-header-label {
+            position: sticky;
+            left: 0;
+            width: 220px;
+            min-width: 220px;
+            background: white;
+            z-index: 25;
+            display: inline-block;
+        }
+
         .gantt-timeline-header {
             display: flex;
             border-bottom: 1px solid #e0e0e0;
-            margin-left: 200px;
+            margin-left: 220px;
         }
 
         .gantt-month-label {
@@ -572,9 +595,8 @@
 
         .gantt-days-header {
             display: flex;
-            margin-left: 200px;
+            margin-left: 220px;
             border-bottom: 2px solid #e0e0e0;
-            margin-bottom: 5px;
         }
 
         .gantt-day-cell {
@@ -618,29 +640,37 @@
         }
 
         .gantt-row-label {
-            width: 200px;
-            min-width: 200px;
-            padding: 10px 12px;
-            font-size: 13px;
+            width: 220px;
+            min-width: 220px;
+            padding: 6px 10px;
+            font-size: 11px;
             font-weight: 500;
             color: #333;
             display: flex;
             flex-direction: column;
             justify-content: center;
             border-right: 2px solid #e0e0e0;
+            background: white;
+            position: sticky;
+            left: 0;
+            z-index: 10;
+        }
+
+        .gantt-row:hover .gantt-row-label {
+            background: #fafafe;
         }
 
         .gantt-row-label .project-name {
             font-weight: 600;
             color: #1a1a2e;
-            margin-bottom: 2px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
+            margin-bottom: 1px;
+            font-size: 11px;
+            line-height: 1.3;
+            word-break: break-word;
         }
 
         .gantt-row-label .project-account {
-            font-size: 11px;
+            font-size: 10px;
             color: #999;
             white-space: nowrap;
             overflow: hidden;
@@ -730,25 +760,35 @@
             position: absolute;
             top: 0;
             bottom: 0;
-            pointer-events: none;
             z-index: 1;
         }
 
         .gantt-dayoff-weekend {
             background: rgba(0, 0, 0, 0.04);
+            pointer-events: none;
         }
 
         .gantt-dayoff-holiday {
             background: rgba(239, 83, 80, 0.10);
+            cursor: default;
+        }
+
+        .gantt-dayoff-holiday:hover {
+            background: rgba(239, 83, 80, 0.22);
         }
 
         .gantt-dayoff-leave {
             background: rgba(255, 167, 38, 0.12);
+            cursor: default;
+        }
+
+        .gantt-dayoff-leave:hover {
+            background: rgba(255, 167, 38, 0.25);
         }
 
         .gantt-dayoff-labels {
             position: relative;
-            margin-left: 200px;
+            margin-left: 220px;
             height: 0;
         }
 
@@ -2877,16 +2917,23 @@
                 if (isWeekend) {
                     dayOffHTML += `<div class="gantt-dayoff gantt-dayoff-weekend" style="left:${dayOffset}px;width:${dayWidth}px;"></div>`;
                 } else if (holidaySet.has(dateStr)) {
-                    dayOffHTML += `<div class="gantt-dayoff gantt-dayoff-holiday" style="left:${dayOffset}px;width:${dayWidth}px;"></div>`;
+                    const hMatch = Object.values(holidays).find(h => h.date === dateStr);
+                    const hName = hMatch ? hMatch.name : 'Holiday';
+                    const hTooltip = `${hName}|${new Date(dateStr).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' })}`;
+                    dayOffHTML += `<div class="gantt-dayoff gantt-dayoff-holiday" style="left:${dayOffset}px;width:${dayWidth}px;" onmouseenter="showGanttTooltip(event, '${hTooltip.replace(/'/g, "\\'")}')" onmouseleave="hideGanttTooltip()"></div>`;
                     if (dayWidth >= 6) {
-                        const hName = Object.values(holidays).find(h => h.date === dateStr);
-                        dayOffHeaderHTML += `<div class="gantt-dayoff-flag" style="left:${dayOffset + dayWidth / 2}px;" title="${hName ? hName.name : 'Holiday'}">H</div>`;
+                        dayOffHeaderHTML += `<div class="gantt-dayoff-flag" style="left:${dayOffset + dayWidth / 2}px;" title="${hName}">H</div>`;
                     }
                 }
 
                 const leavesOnDay = Object.values(leaves).filter(lv => dateStr >= lv.startDate && dateStr <= lv.endDate);
                 if (leavesOnDay.length > 0 && dayOfWeek !== 0 && dayOfWeek !== 6 && !holidaySet.has(dateStr)) {
-                    dayOffHTML += `<div class="gantt-dayoff gantt-dayoff-leave" style="left:${dayOffset}px;width:${dayWidth}px;"></div>`;
+                    const leaveDetails = leavesOnDay.map(lv => {
+                        const resName = (lv.resourceId && resources[lv.resourceId]) ? resources[lv.resourceId].name : 'Unknown';
+                        return resName + (lv.reason ? ' - ' + lv.reason : '');
+                    }).join(', ');
+                    const leaveTooltip = `Leave: ${leaveDetails}|${new Date(dateStr).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' })}`;
+                    dayOffHTML += `<div class="gantt-dayoff gantt-dayoff-leave" style="left:${dayOffset}px;width:${dayWidth}px;" onmouseenter="showGanttTooltip(event, '${leaveTooltip.replace(/'/g, "\\'")}')" onmouseleave="hideGanttTooltip()"></div>`;
                 }
 
                 iterDate.setDate(iterDate.getDate() + 1);
@@ -2975,11 +3022,15 @@
                     <button class="gantt-nav-btn" onclick="ganttScrollRight()">Later &rarr;</button>
                     <span class="gantt-nav-range">${minLabel} &ndash; ${maxLabel}</span>
                 </div>
-                <div class="gantt-chart" id="ganttChartScrollable" style="overflow-x:auto;">
-                    <div class="gantt-dayoff-labels" style="width:${chartWidth}px;min-width:${chartWidth}px;">${dayOffHeaderHTML}</div>
-                    <div class="gantt-timeline-header" style="width:${chartWidth}px;min-width:${chartWidth}px;">${monthLabelsHTML}</div>
-                    <div class="gantt-days-header" style="width:${chartWidth}px;min-width:${chartWidth}px;">${dayHeaderHTML}</div>
-                    ${rowsHTML}
+                <div class="gantt-scroll-wrapper" id="ganttChartScrollable">
+                    <div class="gantt-chart">
+                        <div class="gantt-sticky-header">
+                            <div class="gantt-dayoff-labels" style="width:${chartWidth}px;min-width:${chartWidth}px;">${dayOffHeaderHTML}</div>
+                            <div class="gantt-timeline-header" style="width:${chartWidth}px;min-width:${chartWidth}px;">${monthLabelsHTML}</div>
+                            <div class="gantt-days-header" style="width:${chartWidth}px;min-width:${chartWidth}px;">${dayHeaderHTML}</div>
+                        </div>
+                        ${rowsHTML}
+                    </div>
                 </div>
             `;
 
