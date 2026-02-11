@@ -337,7 +337,7 @@
 
         .phase-row {
             display: grid;
-            grid-template-columns: auto 1fr 1fr 40px;
+            grid-template-columns: auto 1fr 1fr 1fr 40px;
             gap: 15px;
             align-items: end;
             padding: 15px;
@@ -1431,7 +1431,7 @@
                                 <input type="number" id="bandwidth" placeholder="Days required" onchange="calculateTimeline()">
                             </div>
                             
-                            <div class="form-group">
+                            <div class="form-group" id="singleStatusGroup">
                                 <label>Status</label>
                                 <select id="status">
                                     <option value="received">Received</option>
@@ -2509,10 +2509,14 @@
                 const card = document.createElement('div');
                 card.className = 'account-card';
                 
-                // Count active projects for this account
-                const activeProjects = Object.values(projects).filter(p => 
-                    p.account === id && p.status !== 'delivered'
-                ).length;
+                // Count active projects for this account (has any non-delivered phase)
+                const activeProjects = Object.values(projects).filter(p => {
+                    if (p.account !== id) return false;
+                    if (p.deliveryType === 'multi' && p.delivery && p.delivery.phases) {
+                        return p.delivery.phases.some(ph => (ph.status || p.status) !== 'delivered');
+                    }
+                    return p.status !== 'delivered';
+                }).length;
                 
                 card.innerHTML = `
                     <div class="account-header">
@@ -2621,7 +2625,7 @@
                 return;
             }
 
-            // Collect all date segments (bars) from projects
+            // Collect all date segments (bars) from projects — each phase is its own row
             const bars = [];
             projectList.forEach(([id, p]) => {
                 const accountName = (p.account && accounts[p.account]) ? accounts[p.account].name : 'Unknown';
@@ -2631,13 +2635,13 @@
                     p.delivery.phases.forEach(phase => {
                         if (phase.startingDate && phase.deliveryDate) {
                             bars.push({
-                                id: id,
-                                name: projectName,
+                                id: id + '_phase' + phase.phase,
+                                name: projectName + ' - Phase ' + phase.phase,
                                 account: accountName,
-                                status: p.status || 'received',
+                                status: phase.status || p.status || 'received',
                                 start: new Date(phase.startingDate),
                                 end: new Date(phase.deliveryDate),
-                                label: 'Phase ' + phase.phase,
+                                label: '',
                                 isPhase: true
                             });
                         }
@@ -2788,7 +2792,7 @@
                         if (!isNonWorkingDay(countDate, holidaySet, [])) workDays++;
                         countDate.setDate(countDate.getDate() + 1);
                     }
-                    const tooltipData = `${bar.name}${bar.isPhase ? ' - ' + bar.label : ''}|${startStr} - ${endStr}|${workDays} working days (${totalCalDays} cal) | ${bar.status.replace('-', ' ')}`;
+                    const tooltipData = `${bar.name}|${startStr} - ${endStr}|${workDays} working days (${totalCalDays} cal) | ${bar.status.replace('-', ' ')}`;
 
                     barsHTML += `<div class="gantt-bar ${statusClass}${phaseClass}" style="left:${startOffset}px;width:${barWidth}px;" onmouseenter="showGanttTooltip(event, '${tooltipData.replace(/'/g, "\\'")}')" onmouseleave="hideGanttTooltip()">${barLabel}</div>`;
                 });
@@ -3156,6 +3160,7 @@
                 document.querySelectorAll('#phasesContainer .phase-row').forEach((row, index) => {
                     phases.push({
                         phase: index + 1,
+                        status: row.querySelector('.phase-status').value,
                         startingDate: row.querySelector('.phase-start').value,
                         deliveryDate: row.querySelector('.phase-end').value
                     });
@@ -3208,13 +3213,14 @@
             document.getElementById('secondaryStakeholdersPlaceholder').textContent = 'Select Secondary Stakeholders';
             document.getElementById('projectResourcesPlaceholder').textContent = 'Select Resources';
 
-            // Reset delivery dates
+            // Reset delivery dates and status visibility
             document.getElementById('startingDate').value = '';
             document.getElementById('suggestedTimeline').textContent = '';
             document.getElementById('phasesContainer').innerHTML = '';
             phaseCount = 0;
             document.getElementById('singleDeliveryDates').style.display = 'grid';
             document.getElementById('multiDeliveryDates').style.display = 'none';
+            document.getElementById('singleStatusGroup').style.display = '';
         }
 
         // Update delivery fields based on type
@@ -3223,13 +3229,16 @@
             const type = document.getElementById('deliveryType').value;
             const singleSection = document.getElementById('singleDeliveryDates');
             const multiSection = document.getElementById('multiDeliveryDates');
+            const singleStatusGroup = document.getElementById('singleStatusGroup');
 
             if (type === 'single') {
                 singleSection.style.display = 'grid';
                 multiSection.style.display = 'none';
+                singleStatusGroup.style.display = '';
             } else {
                 singleSection.style.display = 'none';
                 multiSection.style.display = 'block';
+                singleStatusGroup.style.display = 'none';
                 // Add two phases by default if empty
                 if (phaseCount === 0) {
                     addPhase();
@@ -3247,6 +3256,17 @@
             row.id = 'phase-' + phaseCount;
             row.innerHTML = `
                 <div class="phase-label">Phase ${container.children.length + 1}</div>
+                <div class="form-group">
+                    <label>Status</label>
+                    <select class="phase-status" name="phaseStatus">
+                        <option value="received">Received</option>
+                        <option value="first-response">First Response</option>
+                        <option value="in-pipeline">In Pipeline</option>
+                        <option value="in-progress">In Progress</option>
+                        <option value="delivered">Delivered</option>
+                        <option value="on-pause">On Pause</option>
+                    </select>
+                </div>
                 <div class="form-group">
                     <label>Starting Date</label>
                     <input type="date" class="phase-start" name="phaseStart">
@@ -3285,20 +3305,20 @@
             if (checked) endInput.value = '';
         }
 
-        // Helper: get project delivery dates (returns {startDate, endDate} or array for multi-phase)
+        // Helper: get project delivery dates (returns {startDate, endDate, phase, status} array)
         function getProjectDates(p) {
             const dates = [];
             if (p.deliveryType === 'multi' && p.delivery && p.delivery.phases) {
                 p.delivery.phases.forEach(phase => {
                     if (phase.startingDate || phase.deliveryDate) {
-                        dates.push({ startDate: phase.startingDate || '', endDate: phase.deliveryDate || '', phase: phase.phase });
+                        dates.push({ startDate: phase.startingDate || '', endDate: phase.deliveryDate || '', phase: phase.phase, status: phase.status || p.status || 'received' });
                     }
                 });
             } else if (p.delivery) {
-                dates.push({ startDate: p.delivery.startingDate || '', endDate: p.delivery.deliveryDate || '', phase: null });
+                dates.push({ startDate: p.delivery.startingDate || '', endDate: p.delivery.deliveryDate || '', phase: null, status: p.status || 'received' });
             } else {
                 // Legacy format
-                dates.push({ startDate: p.createdAt ? p.createdAt.split('T')[0] : '', endDate: p.deliveryTimeline || '', phase: null });
+                dates.push({ startDate: p.createdAt ? p.createdAt.split('T')[0] : '', endDate: p.deliveryTimeline || '', phase: null, status: p.status || 'received' });
             }
             return dates;
         }
@@ -3325,7 +3345,7 @@
             const primaryNames = resolveStakeholderNames(p.primaryStakeholder, p.account);
             const secondaryNames = resolveStakeholderNames(p.secondaryStakeholders, p.account);
             const resourceNames = resolveResourceNames(p.projectResources);
-            const statusLabel = (p.status || '').replace(/-/g, ' ');
+            const statusLabel = (dateInfo.status || p.status || '').replace(/-/g, ' ');
             const phaseLabel = dateInfo.phase ? 'Phase ' + dateInfo.phase : (p.deliveryType === 'multi' ? 'Multi-phase' : 'Single');
 
             return [
@@ -3371,13 +3391,13 @@
             URL.revokeObjectURL(url);
         }
 
-        // Export Option 1: Active tracks (not delivered)
+        // Export Option 1: Active tracks (not delivered — checks per-phase status)
         function exportActiveTracks() {
             const rows = [];
             Object.entries(projects).forEach(([id, p]) => {
-                if (p.status === 'delivered') return;
                 const dates = getProjectDates(p);
                 dates.forEach(d => {
+                    if ((d.status || p.status) === 'delivered') return;
                     rows.push(buildProjectCSVRow(id, p, d));
                 });
             });
