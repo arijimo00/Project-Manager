@@ -3046,6 +3046,10 @@
             const dayWidth = Math.max(4, visibleWidth / 21);
             const chartWidth = totalDays * dayWidth;
 
+            // Store for live bar preview
+            window._ganttMinDate = minDate;
+            window._ganttDayWidth = dayWidth;
+
             // Each bar gets its own row (phases are separate rows)
             const projectRows = {};
             bars.forEach(bar => {
@@ -3207,7 +3211,7 @@
                     }
                     const tooltipData = `${bar.name}|${startStr} - ${endStr}|${workDays} working days (${totalCalDays} cal) | ${bar.status.replace(/-/g, ' ')}|Click to edit`;
 
-                    barsHTML += `<div class="gantt-bar ${statusClass}" style="left:${startOffset}px;width:${barWidth}px;" onclick="showGanttStatusPicker(event, '${bar.projectId}', ${bar.phaseIndex}, '${bar.status}')" onmouseenter="showGanttTooltip(event, '${tooltipData.replace(/'/g, "\\'")}')" onmouseleave="hideGanttTooltip()"></div>`;
+                    barsHTML += `<div id="ganttBar_${bar.id}" class="gantt-bar ${statusClass}" style="left:${startOffset}px;width:${barWidth}px;" onclick="showGanttStatusPicker(event, '${bar.projectId}', ${bar.phaseIndex}, '${bar.status}')" onmouseenter="showGanttTooltip(event, '${tooltipData.replace(/'/g, "\\'")}')" onmouseleave="hideGanttTooltip()"></div>`;
                 });
 
                 const currentStatus = proj.bars[0] ? proj.bars[0].status : 'received';
@@ -3310,7 +3314,10 @@
             }
         }
 
-        // Gantt bar editor — edit status, resources, and delivery date
+        // Gantt bar editor — edit status, resources, delivery date with live preview & discard
+        // Store original state for discard
+        let _ganttEditorOriginal = null;
+
         function showGanttStatusPicker(event, projectId, phaseIndex, currentStatus) {
             event.stopPropagation();
             hideGanttTooltip();
@@ -3318,6 +3325,12 @@
             const picker = document.getElementById('ganttStatusPicker');
             const project = projects[projectId];
             if (!project) return;
+
+            // Build bar ID for live preview
+            let barId = projectId;
+            if (phaseIndex >= 0 && project.deliveryType === 'multi' && project.delivery && project.delivery.phases && project.delivery.phases[phaseIndex]) {
+                barId = projectId + '_phase' + project.delivery.phases[phaseIndex].phase;
+            }
 
             const statusOptions = [
                 { value: 'received', label: 'Received', color: '#1976d2' },
@@ -3342,6 +3355,23 @@
             // Get current resources
             const currentResources = project.projectResources || [];
 
+            // Store original state for discard
+            _ganttEditorOriginal = {
+                projectId: projectId,
+                phaseIndex: phaseIndex,
+                barId: barId,
+                status: currentStatus,
+                startDate: currentStartDate,
+                deliveryDate: currentDeliveryDate,
+                resources: [...currentResources]
+            };
+
+            // Store in picker for preview
+            picker.dataset.selectedStatus = currentStatus;
+            picker.dataset.barId = barId;
+            picker.dataset.projectId = projectId;
+            picker.dataset.phaseIndex = phaseIndex;
+
             // Build status options HTML
             const statusHTML = statusOptions.map(s =>
                 `<div class="gantt-status-option${s.value === currentStatus ? ' current' : ''}" onclick="selectGanttEditorStatus('${s.value}')">` +
@@ -3355,26 +3385,23 @@
                 resourcesHTML = '<div class="picker-section">Resources</div>' +
                     '<div class="gantt-editor-resources">' +
                     resourceEntries.map(([rid, r]) =>
-                        `<label><input type="checkbox" value="${rid}" ${currentResources.includes(rid) ? 'checked' : ''}> ${r.name}</label>`
+                        `<label><input type="checkbox" value="${rid}" ${currentResources.includes(rid) ? 'checked' : ''} onchange="previewGanttBarChanges()"> ${r.name}</label>`
                     ).join('') + '</div>';
             }
 
-            // Build date fields with suggest button
-            const bw = parseInt(project.bandwidth) || 0;
+            // Build date fields with suggest button (always show)
             const dateHTML = '<div class="picker-section">Dates</div>' +
-                `<div class="gantt-editor-field"><label>Starting Date</label><input type="date" id="ganttEditorStartDate" value="${currentStartDate}"></div>` +
-                `<div class="gantt-editor-field"><label>Delivery Date</label><input type="date" id="ganttEditorDate" value="${currentDeliveryDate}"></div>` +
-                (bw > 0 ? `<button class="gantt-editor-suggest" onclick="suggestGanttDeliveryDate('${projectId}', ${phaseIndex})">Suggest Delivery Date</button>` : '');
+                `<div class="gantt-editor-field"><label>Starting Date</label><input type="date" id="ganttEditorStartDate" value="${currentStartDate}" onchange="previewGanttBarChanges()"></div>` +
+                `<div class="gantt-editor-field"><label>Delivery Date</label><input type="date" id="ganttEditorDate" value="${currentDeliveryDate}" onchange="previewGanttBarChanges()"></div>` +
+                `<button class="gantt-editor-suggest" onclick="event.stopPropagation(); suggestGanttDeliveryDate('${projectId}', ${phaseIndex})">Suggest Delivery Date</button>`;
 
             picker.innerHTML = '<div class="picker-title">Edit Project</div>' +
                 '<div class="picker-section">Status</div>' +
                 statusHTML +
                 resourcesHTML +
                 dateHTML +
-                `<button class="gantt-editor-save" onclick="saveGanttBarEdit('${projectId}', ${phaseIndex})">Save Changes</button>`;
-
-            // Store selected status
-            picker.dataset.selectedStatus = currentStatus;
+                `<button class="gantt-editor-save" onclick="saveGanttBarEdit('${projectId}', ${phaseIndex})">Save Changes</button>` +
+                `<button class="gantt-editor-suggest" onclick="discardGanttBarEdit()" style="color:#c2185b;border-color:#c2185b;">Discard Changes</button>`;
 
             // Position picker fully within viewport
             picker.style.display = 'block';
@@ -3388,17 +3415,14 @@
                 let left = event.clientX;
                 let top = event.clientY;
 
-                // Horizontal: keep right edge inside viewport
                 if (left + rect.width > window.innerWidth - 10) {
                     left = window.innerWidth - rect.width - 10;
                 }
                 if (left < 10) left = 10;
 
-                // Vertical: if it overflows bottom, try flipping above click point
                 if (top + rect.height > window.innerHeight - 10) {
                     top = event.clientY - rect.height;
                 }
-                // If flipping puts it above viewport, pin to top and cap height
                 if (top < 10) {
                     top = 10;
                     picker.style.maxHeight = (window.innerHeight - 20) + 'px';
@@ -3424,11 +3448,48 @@
             const idx = statusValues.indexOf(status);
             const options = picker.querySelectorAll('.gantt-status-option');
             if (options[idx]) options[idx].classList.add('current');
+            previewGanttBarChanges();
+        }
+
+        // Live preview: update the Gantt bar DOM directly
+        function previewGanttBarChanges() {
+            const picker = document.getElementById('ganttStatusPicker');
+            const barId = picker.dataset.barId;
+            if (!barId || !window._ganttMinDate || !window._ganttDayWidth) return;
+
+            const barEl = document.getElementById('ganttBar_' + barId);
+            if (!barEl) return;
+
+            const minDate = window._ganttMinDate;
+            const dayWidth = window._ganttDayWidth;
+
+            // Update status color
+            const newStatus = picker.dataset.selectedStatus;
+            barEl.className = barEl.className.replace(/status-\S+/, 'status-' + newStatus);
+
+            // Update position from dates
+            const startVal = document.getElementById('ganttEditorStartDate').value;
+            const endVal = document.getElementById('ganttEditorDate').value;
+            if (startVal && endVal) {
+                const start = new Date(startVal + 'T00:00:00');
+                const end = new Date(endVal + 'T00:00:00');
+                if (!isNaN(start) && !isNaN(end) && end >= start) {
+                    const startOffset = ((start - minDate) / (1000 * 60 * 60 * 24)) * dayWidth;
+                    const days = (end - start) / (1000 * 60 * 60 * 24);
+                    const barWidth = Math.max(dayWidth, (days + 1) * dayWidth);
+                    barEl.style.left = startOffset + 'px';
+                    barEl.style.width = barWidth + 'px';
+                }
+            }
         }
 
         function ganttEditorOutsideClick(e) {
             const picker = document.getElementById('ganttStatusPicker');
             if (!picker.contains(e.target)) {
+                // Revert to original if clicking outside without saving
+                if (_ganttEditorOriginal) {
+                    revertGanttBarPreview();
+                }
                 closeGanttStatusPicker();
             }
         }
@@ -3436,6 +3497,42 @@
         function closeGanttStatusPicker() {
             document.getElementById('ganttStatusPicker').style.display = 'none';
             document.removeEventListener('click', ganttEditorOutsideClick);
+            _ganttEditorOriginal = null;
+        }
+
+        // Revert bar DOM to original state
+        function revertGanttBarPreview() {
+            if (!_ganttEditorOriginal || !window._ganttMinDate || !window._ganttDayWidth) return;
+            const orig = _ganttEditorOriginal;
+            const barEl = document.getElementById('ganttBar_' + orig.barId);
+            if (!barEl) return;
+
+            const minDate = window._ganttMinDate;
+            const dayWidth = window._ganttDayWidth;
+
+            // Revert status class
+            barEl.className = barEl.className.replace(/status-\S+/, 'status-' + orig.status);
+
+            // Revert position
+            if (orig.startDate && orig.deliveryDate) {
+                const start = new Date(orig.startDate + 'T00:00:00');
+                const end = new Date(orig.deliveryDate + 'T00:00:00');
+                if (!isNaN(start) && !isNaN(end)) {
+                    const startOffset = ((start - minDate) / (1000 * 60 * 60 * 24)) * dayWidth;
+                    const days = (end - start) / (1000 * 60 * 60 * 24);
+                    const barWidth = Math.max(dayWidth, (days + 1) * dayWidth);
+                    barEl.style.left = startOffset + 'px';
+                    barEl.style.width = barWidth + 'px';
+                }
+            }
+        }
+
+        // Discard all changes and close editor
+        function discardGanttBarEdit() {
+            if (_ganttEditorOriginal) {
+                revertGanttBarPreview();
+            }
+            closeGanttStatusPicker();
         }
 
         // Save all edits from Gantt bar editor
@@ -3480,6 +3577,7 @@
                 userRef('projects/' + projectId).set(project);
             }
 
+            _ganttEditorOriginal = null; // clear so outside-click doesn't revert
             closeGanttStatusPicker();
             renderGanttChart();
             updateAccountsDisplay();
@@ -3491,7 +3589,7 @@
             if (!project) return;
 
             const bandwidth = parseInt(project.bandwidth) || 0;
-            if (!bandwidth) { alert('No bandwidth set for this project.'); return; }
+            if (!bandwidth) { alert('No bandwidth (days) set for this project. Set it in the Dashboard Entry form.'); return; }
 
             // Read resources from the editor checkboxes (user may have changed them)
             const picker = document.getElementById('ganttStatusPicker');
@@ -3499,7 +3597,7 @@
             picker.querySelectorAll('.gantt-editor-resources input[type="checkbox"]:checked').forEach(cb => {
                 selectedResourceIds.push(cb.value);
             });
-            if (selectedResourceIds.length === 0) { alert('No resources selected.'); return; }
+            if (selectedResourceIds.length === 0) { alert('Select at least one resource first.'); return; }
 
             // Read starting date from editor
             const startInput = document.getElementById('ganttEditorStartDate');
@@ -3509,14 +3607,13 @@
             // Build overlap map EXCLUDING the current project
             const overlapMap = {};
             Object.entries(projects).forEach(([id, p]) => {
-                if (id === projectId) return; // skip this project
+                if (id === projectId) return;
                 const resIds = p.projectResources || [];
                 if (resIds.length === 0) return;
 
                 const ranges = [];
                 if (p.deliveryType === 'multi' && p.delivery && p.delivery.phases) {
-                    p.delivery.phases.forEach((phase, idx) => {
-                        // When excluding current project's phase, skip only if same project
+                    p.delivery.phases.forEach(phase => {
                         const phaseStatus = phase.status || p.status || 'received';
                         if (phaseStatus === 'delivered') return;
                         if (phase.startingDate && phase.deliveryDate) {
@@ -3540,13 +3637,12 @@
             });
 
             const holidaySet = getHolidaySet();
-            const PENALTY = 1.15; // other projects use 15% more bandwidth
+            const PENALTY = 1.15;
 
             // Skip start date to next working day if needed
             while (isNonWorkingDay(startDate, holidaySet, selectedResourceIds)) {
                 startDate.setDate(startDate.getDate() + 1);
             }
-            // Update start date field if it moved
             if (startInput) startInput.value = toDateStr(startDate);
 
             // Walk day by day
@@ -3576,17 +3672,12 @@
                     if (!resource) return;
 
                     const efficiency = 1 + (resource.level * 0.2);
-                    // Count other fixed projects on this day
                     const otherRanges = overlapMap[rid] || [];
                     const otherCount = otherRanges.filter(r => dateStr >= r.start && dateStr <= r.end).length;
 
                     if (otherCount === 0) {
-                        // No overlap — full efficiency for this project
                         dayWork += efficiency;
                     } else {
-                        // Equal share would be 1/(otherCount+1), but others take 15% more
-                        // Other projects each take: PENALTY / (otherCount + 1)
-                        // This project gets the remainder
                         const otherShare = otherCount * PENALTY / (otherCount + 1);
                         const thisShare = Math.max(0, 1 - otherShare);
                         dayWork += efficiency * thisShare;
@@ -3601,6 +3692,9 @@
             const endDateStr = toDateStr(current);
             const dateInput = document.getElementById('ganttEditorDate');
             if (dateInput) dateInput.value = endDateStr;
+
+            // Trigger live preview update
+            previewGanttBarChanges();
         }
 
         // Gantt tooltip
