@@ -2768,7 +2768,9 @@
             maxDate.setDate(maxDate.getDate() + 7);
 
             const totalDays = Math.ceil((maxDate - minDate) / (1000 * 60 * 60 * 24));
-            const dayWidth = Math.max(4, Math.min(20, 800 / totalDays));
+            // Size days so 3 weeks (21 days) fills the visible area
+            const visibleWidth = Math.max(600, (container.clientWidth || 800) - 220);
+            const dayWidth = Math.max(4, visibleWidth / 21);
             const chartWidth = totalDays * dayWidth;
 
             // Each bar gets its own row (phases are separate rows)
