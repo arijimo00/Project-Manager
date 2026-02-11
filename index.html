@@ -548,25 +548,34 @@
         }
 
         .gantt-body {
-            display: flex;
+            overflow: auto;
             max-height: 70vh;
+            position: relative;
         }
 
-        .gantt-labels-col {
-            flex-shrink: 0;
+        .gantt-chart {
+            position: relative;
+        }
+
+        .gantt-header-row {
+            display: flex;
+            position: sticky;
+            top: 0;
+            z-index: 20;
+            background: white;
+        }
+
+        .gantt-header-label {
             width: 220px;
             min-width: 220px;
-            border-right: 2px solid #e0e0e0;
-            overflow: hidden;
+            position: sticky;
+            left: 0;
+            z-index: 30;
             background: white;
-            z-index: 15;
+            border-right: 2px solid #e0e0e0;
         }
 
-        .gantt-labels-header {
-            border-bottom: 1px solid #e0e0e0;
-        }
-
-        .gantt-labels-header-month {
+        .gantt-header-label-month {
             padding: 5px 10px;
             font-size: 11px;
             font-weight: 600;
@@ -575,32 +584,15 @@
             border-bottom: 1px solid #e0e0e0;
         }
 
-        .gantt-labels-header-day {
+        .gantt-header-label-day {
             padding: 4px 10px;
             font-size: 10px;
             color: #999;
             border-bottom: 2px solid #e0e0e0;
         }
 
-        .gantt-labels-body {
-            overflow: hidden;
-        }
-
-        .gantt-chart-col {
+        .gantt-header-dates {
             flex: 1;
-            overflow-x: auto;
-            overflow-y: auto;
-        }
-
-        .gantt-chart {
-            position: relative;
-        }
-
-        .gantt-sticky-header {
-            position: sticky;
-            top: 0;
-            z-index: 12;
-            background: white;
         }
 
         .gantt-timeline-header {
@@ -654,14 +646,18 @@
         }
 
         .gantt-row {
+            display: flex;
             min-height: 44px;
             border-bottom: 1px solid #f0f0f0;
-            position: relative;
         }
 
-        .gantt-label-row {
-            min-height: 44px;
-            border-bottom: 1px solid #f0f0f0;
+        .gantt-row:hover {
+            background: #fafafe;
+        }
+
+        .gantt-row-label {
+            width: 220px;
+            min-width: 220px;
             padding: 6px 10px;
             font-size: 11px;
             font-weight: 500;
@@ -669,14 +665,19 @@
             display: flex;
             flex-direction: column;
             justify-content: center;
+            border-right: 2px solid #e0e0e0;
+            background: white;
+            position: sticky;
+            left: 0;
+            z-index: 25;
             box-sizing: border-box;
         }
 
-        .gantt-label-row:hover {
+        .gantt-row:hover .gantt-row-label {
             background: #fafafe;
         }
 
-        .gantt-label-row .project-name {
+        .gantt-row-label .project-name {
             font-weight: 600;
             color: #1a1a2e;
             margin-bottom: 1px;
@@ -685,7 +686,7 @@
             word-break: break-word;
         }
 
-        .gantt-label-row .project-account {
+        .gantt-row-label .project-account {
             font-size: 10px;
             color: #999;
             white-space: nowrap;
@@ -694,6 +695,7 @@
         }
 
         .gantt-row-bars {
+            flex: 1;
             position: relative;
             min-height: 44px;
         }
@@ -2961,9 +2963,8 @@
                 todayLineHTML = `<div class="gantt-today-line" style="left:${todayOffset}px;"><div class="gantt-today-label">Today</div></div>`;
             }
 
-            // Build rows — split into label rows and bar rows
-            let labelRowsHTML = '';
-            let barRowsHTML = '';
+            // Build rows — unified with sticky labels
+            let rowsHTML = '';
             Object.values(projectRows).forEach(proj => {
                 let barsHTML = '';
                 proj.bars.forEach(bar => {
@@ -2988,14 +2989,12 @@
                 const currentStatus = proj.bars[0] ? proj.bars[0].status : 'received';
                 const statusLabel = currentStatus.replace(/-/g, ' ');
 
-                labelRowsHTML += `
-                    <div class="gantt-label-row">
-                        <div class="project-name" title="${proj.name}">${proj.name}</div>
-                        <div class="project-account">${proj.account} &middot; <span style="text-transform:capitalize;">${statusLabel}</span></div>
-                    </div>`;
-
-                barRowsHTML += `
+                rowsHTML += `
                     <div class="gantt-row">
+                        <div class="gantt-row-label">
+                            <div class="project-name" title="${proj.name}">${proj.name}</div>
+                            <div class="project-account">${proj.account} &middot; <span style="text-transform:capitalize;">${statusLabel}</span></div>
+                        </div>
                         <div class="gantt-row-bars" style="width:${chartWidth}px;min-width:${chartWidth}px;">
                             <div class="gantt-grid-lines">${gridLinesHTML}${dayOffHTML}${todayLineHTML}</div>
                             ${barsHTML}
@@ -3037,42 +3036,31 @@
                     <button class="gantt-nav-btn" onclick="ganttScrollRight()">Later &rarr;</button>
                     <span class="gantt-nav-range">${minLabel} &ndash; ${maxLabel}</span>
                 </div>
-                <div class="gantt-body">
-                    <div class="gantt-labels-col">
-                        <div class="gantt-labels-header">
-                            <div class="gantt-labels-header-month">Project</div>
-                            <div class="gantt-labels-header-day">Details</div>
-                        </div>
-                        <div class="gantt-labels-body" id="ganttLabelsBody">
-                            ${labelRowsHTML}
-                        </div>
-                    </div>
-                    <div class="gantt-chart-col" id="ganttChartScrollable">
-                        <div class="gantt-chart">
-                            <div class="gantt-sticky-header">
+                <div class="gantt-body" id="ganttChartScrollable">
+                    <div class="gantt-chart">
+                        <div class="gantt-header-row">
+                            <div class="gantt-header-label">
+                                <div class="gantt-header-label-month">Project</div>
+                                <div class="gantt-header-label-day">Details</div>
+                            </div>
+                            <div class="gantt-header-dates">
                                 <div class="gantt-dayoff-labels" style="width:${chartWidth}px;min-width:${chartWidth}px;">${dayOffHeaderHTML}</div>
                                 <div class="gantt-timeline-header" style="width:${chartWidth}px;min-width:${chartWidth}px;">${monthLabelsHTML}</div>
                                 <div class="gantt-days-header" style="width:${chartWidth}px;min-width:${chartWidth}px;">${dayHeaderHTML}</div>
                             </div>
-                            ${barRowsHTML}
                         </div>
+                        ${rowsHTML}
                     </div>
                 </div>
             `;
 
             // Default scroll: 1 week before today
             const scrollEl = document.getElementById('ganttChartScrollable');
-            const labelsBody = document.getElementById('ganttLabelsBody');
             if (scrollEl) {
                 const oneWeekAgo = new Date();
                 oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
                 const scrollTarget = Math.max(0, ((oneWeekAgo - minDate) / (1000 * 60 * 60 * 24)) * dayWidth);
                 scrollEl.scrollLeft = scrollTarget;
-
-                // Sync vertical scroll between chart and labels
-                scrollEl.addEventListener('scroll', function() {
-                    if (labelsBody) labelsBody.scrollTop = scrollEl.scrollTop;
-                });
             }
         }
 
