@@ -2673,36 +2673,110 @@
             return result;
         }
 
-        // Calculate suggested timeline
+        // Helper: get active project date ranges per resource (for overlap calculation)
+        function getResourceProjectOverlaps() {
+            const overlaps = {}; // { resourceId: [ { start: 'YYYY-MM-DD', end: 'YYYY-MM-DD' }, ... ] }
+            Object.entries(projects).forEach(([id, p]) => {
+                const resIds = p.projectResources || [];
+                if (resIds.length === 0) return;
+
+                // Collect date ranges from this project
+                const ranges = [];
+                if (p.deliveryType === 'multi' && p.delivery && p.delivery.phases) {
+                    p.delivery.phases.forEach(phase => {
+                        const phaseStatus = phase.status || p.status || 'received';
+                        if (phaseStatus === 'delivered') return; // skip delivered phases
+                        if (phase.startingDate && phase.deliveryDate) {
+                            ranges.push({ start: phase.startingDate, end: phase.deliveryDate });
+                        }
+                    });
+                } else {
+                    const status = p.status || 'received';
+                    if (status === 'delivered') return; // skip delivered projects
+                    let s = p.delivery ? p.delivery.startingDate : null;
+                    let e = p.delivery ? p.delivery.deliveryDate : null;
+                    if (!s && p.createdAt) s = toDateStr(new Date(p.createdAt));
+                    if (!e && p.deliveryTimeline) e = p.deliveryTimeline;
+                    if (s && e) ranges.push({ start: s, end: e });
+                }
+
+                // Assign ranges to each resource on this project
+                resIds.forEach(rid => {
+                    if (!overlaps[rid]) overlaps[rid] = [];
+                    ranges.forEach(r => overlaps[rid].push(r));
+                });
+            });
+            return overlaps;
+        }
+
+        // Helper: count how many active projects a resource is working on for a given date
+        function countResourceProjectsOnDate(resourceId, dateStr, overlapMap) {
+            const ranges = overlapMap[resourceId] || [];
+            return ranges.filter(r => dateStr >= r.start && dateStr <= r.end).length;
+        }
+
+        // Calculate suggested timeline — accounts for resource overlap, leaves, holidays, weekends
         function calculateTimeline() {
             const bandwidth = parseInt(document.getElementById('bandwidth').value) || 0;
             const selectedResourceIds = getCheckedValues('projectResources');
 
             if (bandwidth && selectedResourceIds.length > 0) {
-                // Calculate based on resource efficiency and distribution
-                let totalEfficiency = 0;
-                selectedResourceIds.forEach(id => {
-                    const resource = resources[id];
-                    if (resource) {
-                        const efficiency = 1 + (resource.level * 0.2);
-                        totalEfficiency += efficiency;
-                    }
-                });
-
-                // Calculate working days needed with resource distribution
-                const effectiveWorkingDays = Math.ceil(bandwidth / totalEfficiency) + 1; // +1 day buffer
-
-                // Set starting date to today (skip to next working day if today is off)
                 const holidaySet = getHolidaySet();
+                const overlapMap = getResourceProjectOverlaps();
+
+                // Start from today or next working day
                 let startDate = new Date();
                 while (isNonWorkingDay(startDate, holidaySet, selectedResourceIds)) {
                     startDate.setDate(startDate.getDate() + 1);
                 }
 
-                // Calculate end date by walking forward through working days only
-                const endDate = addWorkingDays(startDate, effectiveWorkingDays, holidaySet, selectedResourceIds);
+                // Walk day by day, accumulating effective work per resource
+                let accumulated = 0;
+                let workingDaysCount = 0;
+                const current = new Date(startDate);
+                const maxIter = 1000; // safety limit
+                let iter = 0;
 
-                // Count total calendar days for display
+                while (accumulated < bandwidth && iter < maxIter) {
+                    iter++;
+                    const dateStr = toDateStr(current);
+                    const dayOfWeek = current.getDay();
+
+                    // Skip weekends and holidays entirely
+                    if (dayOfWeek === 0 || dayOfWeek === 6 || holidaySet.has(dateStr)) {
+                        current.setDate(current.getDate() + 1);
+                        continue;
+                    }
+
+                    let dayWork = 0;
+                    selectedResourceIds.forEach(rid => {
+                        // Check if this resource is on leave
+                        const onLeave = Object.values(leaves).some(lv =>
+                            lv.resourceId === rid && dateStr >= lv.startDate && dateStr <= lv.endDate
+                        );
+                        if (onLeave) return;
+
+                        const resource = resources[rid];
+                        if (!resource) return;
+
+                        const efficiency = 1 + (resource.level * 0.2);
+                        // Count how many OTHER active projects this resource has on this day
+                        const otherProjects = countResourceProjectsOnDate(rid, dateStr, overlapMap);
+                        // Split resource bandwidth: this new project is +1 to the count
+                        const share = 1 / (otherProjects + 1);
+                        dayWork += efficiency * share;
+                    });
+
+                    if (dayWork > 0) {
+                        accumulated += dayWork;
+                        workingDaysCount++;
+                    }
+
+                    if (accumulated >= bandwidth) break;
+                    current.setDate(current.getDate() + 1);
+                }
+
+                const endDate = new Date(current);
                 const calendarDays = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
 
                 const startISO = toDateStr(startDate);
@@ -2712,7 +2786,7 @@
                 document.getElementById('startingDate').value = startISO;
                 document.getElementById('deliveryTimeline').value = endISO;
                 document.getElementById('suggestedTimeline').textContent =
-                    `Suggested: ${effectiveWorkingDays} working days (${calendarDays} calendar days) — excludes weekends, holidays & leaves`;
+                    `Suggested: ${workingDaysCount} working days (${calendarDays} cal days) — accounts for resource overlap, weekends, holidays & leaves`;
 
                 // If multi-phase, auto-fill first phase dates
                 const firstPhase = document.querySelector('#phasesContainer .phase-row');
@@ -3236,11 +3310,14 @@
                 { value: 'on-pause', label: 'On Pause', color: '#c2185b' }
             ];
 
-            // Get current delivery date
+            // Get current dates
+            let currentStartDate = '';
             let currentDeliveryDate = '';
             if (phaseIndex >= 0 && project.deliveryType === 'multi' && project.delivery && project.delivery.phases && project.delivery.phases[phaseIndex]) {
+                currentStartDate = project.delivery.phases[phaseIndex].startingDate || '';
                 currentDeliveryDate = project.delivery.phases[phaseIndex].deliveryDate || '';
             } else if (project.delivery) {
+                currentStartDate = project.delivery.startingDate || '';
                 currentDeliveryDate = project.delivery.deliveryDate || '';
             }
 
@@ -3264,9 +3341,10 @@
                     ).join('') + '</div>';
             }
 
-            // Build delivery date field
-            const dateHTML = '<div class="picker-section">Delivery Date</div>' +
-                `<div class="gantt-editor-field"><input type="date" id="ganttEditorDate" value="${currentDeliveryDate}"></div>`;
+            // Build date fields
+            const dateHTML = '<div class="picker-section">Dates</div>' +
+                `<div class="gantt-editor-field"><label>Starting Date</label><input type="date" id="ganttEditorStartDate" value="${currentStartDate}"></div>` +
+                `<div class="gantt-editor-field"><label>Delivery Date</label><input type="date" id="ganttEditorDate" value="${currentDeliveryDate}"></div>`;
 
             picker.innerHTML = '<div class="picker-title">Edit Project</div>' +
                 '<div class="picker-section">Status</div>' +
@@ -3355,17 +3433,23 @@
                 checkedResources.push(cb.value);
             });
 
-            // Get delivery date
+            // Get dates
+            const startDateInput = document.getElementById('ganttEditorStartDate');
             const dateInput = document.getElementById('ganttEditorDate');
+            const newStartDate = startDateInput ? startDateInput.value : '';
             const newDate = dateInput ? dateInput.value : '';
 
-            // Apply status
+            // Apply status and dates
             if (phaseIndex >= 0 && project.deliveryType === 'multi' && project.delivery && project.delivery.phases && project.delivery.phases[phaseIndex]) {
                 project.delivery.phases[phaseIndex].status = newStatus;
+                if (newStartDate) project.delivery.phases[phaseIndex].startingDate = newStartDate;
                 if (newDate) project.delivery.phases[phaseIndex].deliveryDate = newDate;
             } else {
                 project.status = newStatus;
-                if (newDate && project.delivery) project.delivery.deliveryDate = newDate;
+                if (project.delivery) {
+                    if (newStartDate) project.delivery.startingDate = newStartDate;
+                    if (newDate) project.delivery.deliveryDate = newDate;
+                }
             }
 
             // Apply resources
