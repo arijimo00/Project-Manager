@@ -961,11 +961,47 @@
         }
 
         .gantt-editor-field input[type="date"] {
+            flex: 1;
+            min-width: 0;
+            padding: 6px 8px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 12px;
+        }
+
+        .gantt-editor-field input[type="number"] {
             width: 100%;
             padding: 6px 8px;
             border: 1px solid #ddd;
             border-radius: 6px;
             font-size: 12px;
+        }
+
+        .gantt-date-row {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .gantt-date-btn {
+            width: 26px;
+            height: 26px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            background: #f9f9f9;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            color: #667eea;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .gantt-date-btn:hover {
+            background: #eef;
+            border-color: #667eea;
         }
 
         .gantt-editor-resources {
@@ -2777,7 +2813,7 @@
                         const resource = resources[rid];
                         if (!resource) return;
 
-                        const efficiency = 1 + (resource.level * 0.2);
+                        const efficiency = 0.8 + (resource.level * 0.2);
                         // Count how many OTHER active projects this resource has on this day
                         const otherProjects = countResourceProjectsOnDate(rid, dateStr, overlapMap);
                         // Split resource bandwidth: this new project is +1 to the count
@@ -2922,14 +2958,14 @@
                     }
                 };
                 
-                const efficiency = 100 + (resource.level * 20);
+                const efficiency = 80 + (resource.level * 20);
                 
                 card.innerHTML = `
                     <div style="display: flex; justify-content: space-between; align-items: center;">
                         <div>
                             <h3 style="margin: 0; color: #1a1a2e;">${resource.name}</h3>
                             <p style="margin: 5px 0; color: #666;">${resource.title}</p>
-                            <span class="status-badge" style="background: ${efficiency >= 100 ? '#e8f5e9' : '#fce4ec'}; color: ${efficiency >= 100 ? '#388e3c' : '#c2185b'};">
+                            <span class="status-badge" style="background: ${efficiency >= 80 ? '#e8f5e9' : '#fce4ec'}; color: ${efficiency >= 80 ? '#388e3c' : '#c2185b'};">
                                 ${efficiency}% Efficiency
                             </span>
                         </div>
@@ -3363,7 +3399,8 @@
                 status: currentStatus,
                 startDate: currentStartDate,
                 deliveryDate: currentDeliveryDate,
-                resources: [...currentResources]
+                resources: [...currentResources],
+                bandwidth: project.bandwidth || ''
             };
 
             // Store in picker for preview
@@ -3389,16 +3426,30 @@
                     ).join('') + '</div>';
             }
 
-            // Build date fields with suggest button (always show)
+            // Build bandwidth field
+            const currentBandwidth = parseInt(project.bandwidth) || '';
+            const bandwidthHTML = '<div class="picker-section">Bandwidth</div>' +
+                `<div class="gantt-editor-field"><label>Days Required</label><input type="number" id="ganttEditorBandwidth" value="${currentBandwidth}" min="1" placeholder="Days"></div>`;
+
+            // Build date fields with +/- working day buttons and suggest button
             const dateHTML = '<div class="picker-section">Dates</div>' +
-                `<div class="gantt-editor-field"><label>Starting Date</label><input type="date" id="ganttEditorStartDate" value="${currentStartDate}" onchange="previewGanttBarChanges()"></div>` +
-                `<div class="gantt-editor-field"><label>Delivery Date</label><input type="date" id="ganttEditorDate" value="${currentDeliveryDate}" onchange="previewGanttBarChanges()"></div>` +
+                `<div class="gantt-editor-field"><label>Starting Date</label><div class="gantt-date-row">` +
+                `<button class="gantt-date-btn" onclick="event.stopPropagation(); nudgeGanttDate('ganttEditorStartDate', -1)" title="Previous working day">&minus;</button>` +
+                `<input type="date" id="ganttEditorStartDate" value="${currentStartDate}" onchange="previewGanttBarChanges()">` +
+                `<button class="gantt-date-btn" onclick="event.stopPropagation(); nudgeGanttDate('ganttEditorStartDate', 1)" title="Next working day">+</button>` +
+                `</div></div>` +
+                `<div class="gantt-editor-field"><label>Delivery Date</label><div class="gantt-date-row">` +
+                `<button class="gantt-date-btn" onclick="event.stopPropagation(); nudgeGanttDate('ganttEditorDate', -1)" title="Previous working day">&minus;</button>` +
+                `<input type="date" id="ganttEditorDate" value="${currentDeliveryDate}" onchange="previewGanttBarChanges()">` +
+                `<button class="gantt-date-btn" onclick="event.stopPropagation(); nudgeGanttDate('ganttEditorDate', 1)" title="Next working day">+</button>` +
+                `</div></div>` +
                 `<button class="gantt-editor-suggest" onclick="event.stopPropagation(); suggestGanttDeliveryDate('${projectId}', ${phaseIndex})">Suggest Delivery Date</button>`;
 
             picker.innerHTML = '<div class="picker-title">Edit Project</div>' +
                 '<div class="picker-section">Status</div>' +
                 statusHTML +
                 resourcesHTML +
+                bandwidthHTML +
                 dateHTML +
                 `<button class="gantt-editor-save" onclick="saveGanttBarEdit('${projectId}', ${phaseIndex})">Save Changes</button>` +
                 `<button class="gantt-editor-suggest" onclick="discardGanttBarEdit()" style="color:#c2185b;border-color:#c2185b;">Discard Changes</button>`;
@@ -3481,6 +3532,25 @@
                     barEl.style.width = barWidth + 'px';
                 }
             }
+        }
+
+        // Nudge a date field to the next (+1) or previous (-1) working day
+        function nudgeGanttDate(inputId, direction) {
+            const input = document.getElementById(inputId);
+            if (!input || !input.value) return;
+
+            const holidaySet = getHolidaySet();
+            const d = new Date(input.value + 'T00:00:00');
+            if (isNaN(d)) return;
+
+            // Move one day in the direction, then keep going until we hit a working day
+            d.setDate(d.getDate() + direction);
+            while (d.getDay() === 0 || d.getDay() === 6 || holidaySet.has(toDateStr(d))) {
+                d.setDate(d.getDate() + direction);
+            }
+
+            input.value = toDateStr(d);
+            previewGanttBarChanges();
         }
 
         function ganttEditorOutsideClick(e) {
@@ -3572,6 +3642,10 @@
             // Apply resources
             project.projectResources = checkedResources;
 
+            // Apply bandwidth
+            const bwInput = document.getElementById('ganttEditorBandwidth');
+            if (bwInput && bwInput.value) project.bandwidth = bwInput.value;
+
             // Save to Firebase
             if (database) {
                 userRef('projects/' + projectId).set(project);
@@ -3588,8 +3662,10 @@
             const project = projects[projectId];
             if (!project) return;
 
-            const bandwidth = parseInt(project.bandwidth) || 0;
-            if (!bandwidth) { alert('No bandwidth (days) set for this project. Set it in the Dashboard Entry form.'); return; }
+            // Read bandwidth from editor field (user may have changed it)
+            const bwField = document.getElementById('ganttEditorBandwidth');
+            const bandwidth = parseInt(bwField ? bwField.value : project.bandwidth) || 0;
+            if (!bandwidth) { alert('Enter a bandwidth (days required) first.'); return; }
 
             // Read resources from the editor checkboxes (user may have changed them)
             const picker = document.getElementById('ganttStatusPicker');
@@ -3671,7 +3747,7 @@
                     const resource = resources[rid];
                     if (!resource) return;
 
-                    const efficiency = 1 + (resource.level * 0.2);
+                    const efficiency = 0.8 + (resource.level * 0.2);
                     const otherRanges = overlapMap[rid] || [];
                     const otherCount = otherRanges.filter(r => dateStr >= r.start && dateStr <= r.end).length;
 
