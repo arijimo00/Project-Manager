@@ -736,13 +736,14 @@
             opacity: 0.9;
         }
 
-        .gantt-today-line {
+        .gantt-today-col {
             position: absolute;
             top: 0;
             bottom: 0;
-            width: 2px;
-            background: #ef5350;
-            z-index: 5;
+            background: rgba(239, 83, 80, 0.12);
+            border-left: 2px solid rgba(239, 83, 80, 0.4);
+            border-right: 2px solid rgba(239, 83, 80, 0.4);
+            z-index: 2;
             pointer-events: none;
         }
 
@@ -792,21 +793,25 @@
         }
 
         .gantt-dayoff-holiday {
-            background: rgba(239, 83, 80, 0.10);
+            background: rgba(239, 83, 80, 0.18);
+            border-left: 1px solid rgba(239, 83, 80, 0.3);
+            border-right: 1px solid rgba(239, 83, 80, 0.3);
             cursor: default;
         }
 
         .gantt-dayoff-holiday:hover {
-            background: rgba(239, 83, 80, 0.22);
+            background: rgba(239, 83, 80, 0.30);
         }
 
         .gantt-dayoff-leave {
-            background: rgba(255, 167, 38, 0.20);
+            background: rgba(255, 167, 38, 0.25);
+            border-left: 1px solid rgba(255, 167, 38, 0.4);
+            border-right: 1px solid rgba(255, 167, 38, 0.4);
             cursor: default;
         }
 
         .gantt-dayoff-leave:hover {
-            background: rgba(255, 167, 38, 0.35);
+            background: rgba(255, 167, 38, 0.40);
         }
 
         .gantt-dayoff-labels {
@@ -2968,9 +2973,9 @@
             let todayDayIndex = -1;
             if (today >= minDate && today <= maxDate) {
                 const todayDayNum = Math.floor((today - minDate) / (1000 * 60 * 60 * 24));
-                const todayOffset = todayDayNum * dayWidth + dayWidth / 2;
-                todayLineHTML = `<div class="gantt-today-line" style="left:${todayOffset}px;"></div>`;
-                todayDayIndex = Math.floor((today - minDate) / (1000 * 60 * 60 * 24));
+                const todayOffset = todayDayNum * dayWidth;
+                todayLineHTML = `<div class="gantt-today-col" style="left:${todayOffset}px;width:${dayWidth}px;"></div>`;
+                todayDayIndex = todayDayNum;
             }
 
             // Build rows — unified with sticky labels
@@ -3089,7 +3094,7 @@
             const el = document.getElementById('ganttChartScrollable');
             if (!el) return;
             // Find the today-line element offset
-            const todayLine = el.querySelector('.gantt-today-line');
+            const todayLine = el.querySelector('.gantt-today-col');
             if (todayLine) {
                 const offset = parseInt(todayLine.style.left) || 0;
                 el.scrollTo({ left: Math.max(0, offset - 300), behavior: 'smooth' });
