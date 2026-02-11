@@ -3278,27 +3278,37 @@
             // Store selected status
             picker.dataset.selectedStatus = currentStatus;
 
-            // Position picker within viewport — render off-screen first to measure
+            // Position picker fully within viewport
             picker.style.display = 'block';
-            picker.style.left = '-9999px';
-            picker.style.top = '-9999px';
-            const pickerRect = picker.getBoundingClientRect();
-            const ph = pickerRect.height;
-            const pw = pickerRect.width;
+            picker.style.maxHeight = '';
+            picker.style.left = event.clientX + 'px';
+            picker.style.top = event.clientY + 'px';
 
-            let left = event.clientX;
-            let top = event.clientY;
+            // Let browser layout, then adjust
+            requestAnimationFrame(() => {
+                const rect = picker.getBoundingClientRect();
+                let left = event.clientX;
+                let top = event.clientY;
 
-            // Keep within horizontal bounds
-            if (left + pw > window.innerWidth - 10) left = window.innerWidth - pw - 10;
-            if (left < 10) left = 10;
+                // Horizontal: keep right edge inside viewport
+                if (left + rect.width > window.innerWidth - 10) {
+                    left = window.innerWidth - rect.width - 10;
+                }
+                if (left < 10) left = 10;
 
-            // Keep within vertical bounds — flip above click point if needed
-            if (top + ph > window.innerHeight - 10) top = event.clientY - ph;
-            if (top < 10) top = 10;
+                // Vertical: if it overflows bottom, try flipping above click point
+                if (top + rect.height > window.innerHeight - 10) {
+                    top = event.clientY - rect.height;
+                }
+                // If flipping puts it above viewport, pin to top and cap height
+                if (top < 10) {
+                    top = 10;
+                    picker.style.maxHeight = (window.innerHeight - 20) + 'px';
+                }
 
-            picker.style.left = left + 'px';
-            picker.style.top = top + 'px';
+                picker.style.left = left + 'px';
+                picker.style.top = top + 'px';
+            });
 
             // Prevent immediate close
             setTimeout(() => {
