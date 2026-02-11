@@ -570,6 +570,7 @@
             min-width: 220px;
             position: sticky;
             left: 0;
+            top: 0;
             z-index: 30;
             background: white;
             border-right: 2px solid #e0e0e0;
@@ -888,15 +889,18 @@
             margin-left: 10px;
         }
 
-        /* Gantt Status Picker */
+        /* Gantt Bar Editor */
         .gantt-status-picker {
             position: fixed;
             background: white;
             border-radius: 10px;
             box-shadow: 0 8px 30px rgba(0,0,0,0.2);
             z-index: 3001;
-            padding: 8px 0;
-            min-width: 180px;
+            padding: 10px 0;
+            min-width: 260px;
+            max-width: 320px;
+            max-height: 80vh;
+            overflow-y: auto;
             display: none;
         }
 
@@ -908,6 +912,15 @@
             text-transform: uppercase;
             border-bottom: 1px solid #eee;
             margin-bottom: 4px;
+        }
+
+        .gantt-status-picker .picker-section {
+            padding: 6px 14px;
+            font-size: 10px;
+            color: #999;
+            font-weight: 600;
+            text-transform: uppercase;
+            margin-top: 6px;
         }
 
         .gantt-status-option {
@@ -934,6 +947,66 @@
             height: 10px;
             border-radius: 50%;
             flex-shrink: 0;
+        }
+
+        .gantt-editor-field {
+            padding: 6px 14px;
+        }
+
+        .gantt-editor-field label {
+            display: block;
+            font-size: 11px;
+            color: #666;
+            margin-bottom: 4px;
+        }
+
+        .gantt-editor-field input[type="date"] {
+            width: 100%;
+            padding: 6px 8px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 12px;
+        }
+
+        .gantt-editor-resources {
+            padding: 4px 14px;
+            max-height: 120px;
+            overflow-y: auto;
+        }
+
+        .gantt-editor-resources label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 3px 0;
+            font-size: 12px;
+            cursor: pointer;
+        }
+
+        .gantt-editor-resources label:hover {
+            color: #667eea;
+        }
+
+        .gantt-editor-resources input[type="checkbox"] {
+            accent-color: #667eea;
+        }
+
+        .gantt-editor-save {
+            margin: 8px 14px 4px;
+            padding: 7px 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            width: calc(100% - 28px);
+            text-align: center;
+        }
+
+        .gantt-editor-save:hover {
+            opacity: 0.9;
         }
 
         /* Buttons */
@@ -2984,9 +3057,47 @@
                 todayDayIndex = todayDayNum;
             }
 
+            // Sort rows by status priority: In Progress > In Pipeline > First Response > Received > On Pause > Delivered
+            const statusPriority = {
+                'in-progress': 1,
+                'in-pipeline': 2,
+                'first-response': 3,
+                'received': 4,
+                'on-pause': 5,
+                'delivered': 6
+            };
+
+            // For multi-phase projects, check if any sibling phase is NOT delivered
+            const projectHasActiveSibling = {};
+            bars.forEach(bar => {
+                if (bar.isPhase) {
+                    if (!projectHasActiveSibling[bar.projectId]) projectHasActiveSibling[bar.projectId] = false;
+                    if (bar.status !== 'delivered') projectHasActiveSibling[bar.projectId] = true;
+                }
+            });
+
+            const sortedRows = Object.values(projectRows).sort((a, b) => {
+                const aStatus = a.bars[0] ? a.bars[0].status : 'received';
+                const bStatus = b.bars[0] ? b.bars[0].status : 'received';
+                let aPriority = statusPriority[aStatus] || 4;
+                let bPriority = statusPriority[bStatus] || 4;
+
+                // If delivered but has active sibling phases, treat as priority 5.5 (just above delivered, below on-pause)
+                const aBar = a.bars[0];
+                const bBar = b.bars[0];
+                if (aStatus === 'delivered' && aBar && aBar.isPhase && projectHasActiveSibling[aBar.projectId]) {
+                    aPriority = 5.5;
+                }
+                if (bStatus === 'delivered' && bBar && bBar.isPhase && projectHasActiveSibling[bBar.projectId]) {
+                    bPriority = 5.5;
+                }
+
+                return aPriority - bPriority;
+            });
+
             // Build rows — unified with sticky labels
             let rowsHTML = '';
-            Object.values(projectRows).forEach(proj => {
+            sortedRows.forEach(proj => {
                 let barsHTML = '';
                 proj.bars.forEach(bar => {
                     const startOffset = ((bar.start - minDate) / (1000 * 60 * 60 * 24)) * dayWidth;
@@ -3002,7 +3113,7 @@
                         if (!isNonWorkingDay(countDate, holidaySet, [])) workDays++;
                         countDate.setDate(countDate.getDate() + 1);
                     }
-                    const tooltipData = `${bar.name}|${startStr} - ${endStr}|${workDays} working days (${totalCalDays} cal) | ${bar.status.replace(/-/g, ' ')}|Click to change status`;
+                    const tooltipData = `${bar.name}|${startStr} - ${endStr}|${workDays} working days (${totalCalDays} cal) | ${bar.status.replace(/-/g, ' ')}|Click to edit`;
 
                     barsHTML += `<div class="gantt-bar ${statusClass}" style="left:${startOffset}px;width:${barWidth}px;" onclick="showGanttStatusPicker(event, '${bar.projectId}', ${bar.phaseIndex}, '${bar.status}')" onmouseenter="showGanttTooltip(event, '${tooltipData.replace(/'/g, "\\'")}')" onmouseleave="hideGanttTooltip()"></div>`;
                 });
@@ -3107,12 +3218,15 @@
             }
         }
 
-        // Status picker on Gantt bar click
+        // Gantt bar editor — edit status, resources, and delivery date
         function showGanttStatusPicker(event, projectId, phaseIndex, currentStatus) {
             event.stopPropagation();
             hideGanttTooltip();
 
             const picker = document.getElementById('ganttStatusPicker');
+            const project = projects[projectId];
+            if (!project) return;
+
             const statusOptions = [
                 { value: 'received', label: 'Received', color: '#1976d2' },
                 { value: 'first-response', label: 'First Response', color: '#7b1fa2' },
@@ -3122,47 +3236,119 @@
                 { value: 'on-pause', label: 'On Pause', color: '#c2185b' }
             ];
 
-            picker.innerHTML = '<div class="picker-title">Change Status</div>' +
-                statusOptions.map(s =>
-                    `<div class="gantt-status-option${s.value === currentStatus ? ' current' : ''}" onclick="updateGanttStatus('${projectId}', ${phaseIndex}, '${s.value}')">` +
-                    `<div class="gantt-status-dot" style="background:${s.color};"></div>${s.label}</div>`
-                ).join('');
+            // Get current delivery date
+            let currentDeliveryDate = '';
+            if (phaseIndex >= 0 && project.deliveryType === 'multi' && project.delivery && project.delivery.phases && project.delivery.phases[phaseIndex]) {
+                currentDeliveryDate = project.delivery.phases[phaseIndex].deliveryDate || '';
+            } else if (project.delivery) {
+                currentDeliveryDate = project.delivery.deliveryDate || '';
+            }
+
+            // Get current resources
+            const currentResources = project.projectResources || [];
+
+            // Build status options HTML
+            const statusHTML = statusOptions.map(s =>
+                `<div class="gantt-status-option${s.value === currentStatus ? ' current' : ''}" onclick="selectGanttEditorStatus('${s.value}')">` +
+                `<div class="gantt-status-dot" style="background:${s.color};"></div>${s.label}</div>`
+            ).join('');
+
+            // Build resources checkboxes HTML
+            const resourceEntries = Object.entries(resources);
+            let resourcesHTML = '';
+            if (resourceEntries.length > 0) {
+                resourcesHTML = '<div class="picker-section">Resources</div>' +
+                    '<div class="gantt-editor-resources">' +
+                    resourceEntries.map(([rid, r]) =>
+                        `<label><input type="checkbox" value="${rid}" ${currentResources.includes(rid) ? 'checked' : ''}> ${r.name}</label>`
+                    ).join('') + '</div>';
+            }
+
+            // Build delivery date field
+            const dateHTML = '<div class="picker-section">Delivery Date</div>' +
+                `<div class="gantt-editor-field"><input type="date" id="ganttEditorDate" value="${currentDeliveryDate}"></div>`;
+
+            picker.innerHTML = '<div class="picker-title">Edit Project</div>' +
+                '<div class="picker-section">Status</div>' +
+                statusHTML +
+                resourcesHTML +
+                dateHTML +
+                `<button class="gantt-editor-save" onclick="saveGanttBarEdit('${projectId}', ${phaseIndex})">Save Changes</button>`;
+
+            // Store selected status
+            picker.dataset.selectedStatus = currentStatus;
 
             picker.style.display = 'block';
-            picker.style.left = Math.min(event.clientX, window.innerWidth - 200) + 'px';
-            picker.style.top = Math.min(event.clientY, window.innerHeight - 250) + 'px';
+            picker.style.left = Math.min(event.clientX, window.innerWidth - 280) + 'px';
+            picker.style.top = Math.min(event.clientY, window.innerHeight - 400) + 'px';
 
-            // Close on outside click
+            // Prevent immediate close
             setTimeout(() => {
-                document.addEventListener('click', closeGanttStatusPicker, { once: true });
+                document.addEventListener('click', ganttEditorOutsideClick);
             }, 10);
+        }
+
+        function selectGanttEditorStatus(status) {
+            const picker = document.getElementById('ganttStatusPicker');
+            picker.dataset.selectedStatus = status;
+            picker.querySelectorAll('.gantt-status-option').forEach(opt => {
+                opt.classList.remove('current');
+            });
+            const statusValues = ['received', 'first-response', 'in-pipeline', 'in-progress', 'delivered', 'on-pause'];
+            const idx = statusValues.indexOf(status);
+            const options = picker.querySelectorAll('.gantt-status-option');
+            if (options[idx]) options[idx].classList.add('current');
+        }
+
+        function ganttEditorOutsideClick(e) {
+            const picker = document.getElementById('ganttStatusPicker');
+            if (!picker.contains(e.target)) {
+                closeGanttStatusPicker();
+            }
         }
 
         function closeGanttStatusPicker() {
             document.getElementById('ganttStatusPicker').style.display = 'none';
+            document.removeEventListener('click', ganttEditorOutsideClick);
         }
 
-        // Update project/phase status from Gantt chart
-        function updateGanttStatus(projectId, phaseIndex, newStatus) {
-            closeGanttStatusPicker();
-
+        // Save all edits from Gantt bar editor
+        function saveGanttBarEdit(projectId, phaseIndex) {
+            const picker = document.getElementById('ganttStatusPicker');
             const project = projects[projectId];
             if (!project) return;
 
+            // Get selected status
+            const newStatus = picker.dataset.selectedStatus;
+
+            // Get selected resources
+            const checkedResources = [];
+            picker.querySelectorAll('.gantt-editor-resources input[type="checkbox"]:checked').forEach(cb => {
+                checkedResources.push(cb.value);
+            });
+
+            // Get delivery date
+            const dateInput = document.getElementById('ganttEditorDate');
+            const newDate = dateInput ? dateInput.value : '';
+
+            // Apply status
             if (phaseIndex >= 0 && project.deliveryType === 'multi' && project.delivery && project.delivery.phases && project.delivery.phases[phaseIndex]) {
-                // Update per-phase status
                 project.delivery.phases[phaseIndex].status = newStatus;
+                if (newDate) project.delivery.phases[phaseIndex].deliveryDate = newDate;
             } else {
-                // Update blanket project status (single delivery)
                 project.status = newStatus;
+                if (newDate && project.delivery) project.delivery.deliveryDate = newDate;
             }
+
+            // Apply resources
+            project.projectResources = checkedResources;
 
             // Save to Firebase
             if (database) {
                 userRef('projects/' + projectId).set(project);
             }
 
-            // Re-render
+            closeGanttStatusPicker();
             renderGanttChart();
             updateAccountsDisplay();
         }
