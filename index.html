@@ -746,14 +746,20 @@
             pointer-events: none;
         }
 
-        .gantt-today-label {
-            position: absolute;
-            top: -18px;
-            font-size: 10px;
-            font-weight: 600;
+        .gantt-day-cell.today {
+            background: rgba(239, 83, 80, 0.12);
             color: #ef5350;
-            transform: translateX(-50%);
-            white-space: nowrap;
+            font-weight: 700;
+        }
+
+        .gantt-day-cell.today .day-letter {
+            color: #ef5350;
+            font-size: 8px;
+        }
+
+        .gantt-day-cell.today .day-num {
+            color: #ef5350;
+            font-weight: 700;
         }
 
         .gantt-grid-lines {
@@ -2921,8 +2927,9 @@
                 const isWeekStart = dayOfWeek === 0; // Sunday = week start
 
                 // Day header cell
-                dayHeaderHTML += `<div class="gantt-day-cell${isWeekend ? ' weekend' : ''}${isWeekStart ? ' week-start' : ''}" style="width:${dayWidth}px;min-width:${dayWidth}px;">` +
-                    `<div class="day-letter">${dayLetters[dayOfWeek]}</div>` +
+                const isToday = dateStr === toDateStr(new Date());
+                dayHeaderHTML += `<div class="gantt-day-cell${isWeekend ? ' weekend' : ''}${isWeekStart ? ' week-start' : ''}${isToday ? ' today' : ''}" style="width:${dayWidth}px;min-width:${dayWidth}px;">` +
+                    (isToday ? `<div class="day-letter">Today</div>` : `<div class="day-letter">${dayLetters[dayOfWeek]}</div>`) +
                     `<div class="day-num">${dayNum}</div></div>`;
 
                 // Grid line at each Sunday (week boundary)
@@ -2955,12 +2962,14 @@
                 iterDate.setDate(iterDate.getDate() + 1);
             }
 
-            // Today line
+            // Today line — centered on today's day column, no label (label goes in day header)
             const today = new Date();
             let todayLineHTML = '';
+            let todayDayIndex = -1;
             if (today >= minDate && today <= maxDate) {
-                const todayOffset = ((today - minDate) / (1000 * 60 * 60 * 24)) * dayWidth;
-                todayLineHTML = `<div class="gantt-today-line" style="left:${todayOffset}px;"><div class="gantt-today-label">Today</div></div>`;
+                const todayOffset = ((today - minDate) / (1000 * 60 * 60 * 24)) * dayWidth + dayWidth / 2;
+                todayLineHTML = `<div class="gantt-today-line" style="left:${todayOffset}px;"></div>`;
+                todayDayIndex = Math.floor((today - minDate) / (1000 * 60 * 60 * 24));
             }
 
             // Build rows — unified with sticky labels
