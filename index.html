@@ -3278,9 +3278,27 @@
             // Store selected status
             picker.dataset.selectedStatus = currentStatus;
 
+            // Position picker within viewport — render off-screen first to measure
             picker.style.display = 'block';
-            picker.style.left = Math.min(event.clientX, window.innerWidth - 280) + 'px';
-            picker.style.top = Math.min(event.clientY, window.innerHeight - 400) + 'px';
+            picker.style.left = '-9999px';
+            picker.style.top = '-9999px';
+            const pickerRect = picker.getBoundingClientRect();
+            const ph = pickerRect.height;
+            const pw = pickerRect.width;
+
+            let left = event.clientX;
+            let top = event.clientY;
+
+            // Keep within horizontal bounds
+            if (left + pw > window.innerWidth - 10) left = window.innerWidth - pw - 10;
+            if (left < 10) left = 10;
+
+            // Keep within vertical bounds — flip above click point if needed
+            if (top + ph > window.innerHeight - 10) top = event.clientY - ph;
+            if (top < 10) top = 10;
+
+            picker.style.left = left + 'px';
+            picker.style.top = top + 'px';
 
             // Prevent immediate close
             setTimeout(() => {
