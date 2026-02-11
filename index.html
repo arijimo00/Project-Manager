@@ -1901,7 +1901,6 @@
 
                     database.ref('_app_users/' + username).set(userData).then(function() {
                         localStorage.setItem('appFirebaseConfig', JSON.stringify(config));
-                        addToUserRegistry(username);
                         currentUser = { username: username, createdAt: userData.createdAt };
                         localStorage.setItem('currentUser', JSON.stringify(currentUser));
 
@@ -1959,7 +1958,6 @@
                         return;
                     }
 
-                    addToUserRegistry(username);
                     currentUser = { username: username, createdAt: userData.createdAt };
                     localStorage.setItem('currentUser', JSON.stringify(currentUser));
 
@@ -1973,25 +1971,6 @@
         }
 
         // Show Manage Accounts modal
-        // Local user registry helpers — avoids reading the entire _app_users node
-        function getUserRegistry() {
-            try {
-                var reg = JSON.parse(localStorage.getItem('userRegistry') || '[]');
-                return Array.isArray(reg) ? reg : [];
-            } catch (e) { return []; }
-        }
-        function addToUserRegistry(username) {
-            var reg = getUserRegistry();
-            if (reg.indexOf(username) === -1) {
-                reg.push(username);
-                localStorage.setItem('userRegistry', JSON.stringify(reg));
-            }
-        }
-        function removeFromUserRegistry(username) {
-            var reg = getUserRegistry().filter(function(u) { return u !== username; });
-            localStorage.setItem('userRegistry', JSON.stringify(reg));
-        }
-
         function showManageAccounts() {
             document.getElementById('adminPanel').classList.add('active');
             document.getElementById('adminAuth').style.display = 'block';
@@ -2002,7 +1981,7 @@
             document.getElementById('adminConfigField').style.display = hasConfig ? 'none' : 'block';
         }
 
-        // Authenticate admin and load user list (reads each user individually)
+        // Authenticate admin and load user list
         function authenticateAdmin() {
             var password = document.getElementById('adminPassword').value;
             if (password !== 'Xk9#mQ2$vL7!') {
@@ -2029,33 +2008,13 @@
                     return;
                 }
 
-                document.getElementById('adminAuth').style.display = 'none';
-                document.getElementById('adminDashboard').style.display = 'block';
-                loadAdminUserList();
-            });
-        }
-
-        // Load users one-by-one from the local registry
-        function loadAdminUserList() {
-            var registry = getUserRegistry();
-            if (registry.length === 0) {
-                renderAdminUserList({});
-                return;
-            }
-
-            var users = {};
-            var pending = registry.length;
-
-            registry.forEach(function(username) {
-                database.ref('_app_users/' + username).once('value').then(function(snapshot) {
-                    if (snapshot.exists()) {
-                        users[username] = snapshot.val();
-                    }
-                    pending--;
-                    if (pending === 0) renderAdminUserList(users);
-                }).catch(function() {
-                    pending--;
-                    if (pending === 0) renderAdminUserList(users);
+                database.ref('_app_users').once('value').then(function(snapshot) {
+                    var users = snapshot.val() || {};
+                    document.getElementById('adminAuth').style.display = 'none';
+                    document.getElementById('adminDashboard').style.display = 'block';
+                    renderAdminUserList(users);
+                }).catch(function(err) {
+                    alert('Error loading users: ' + err.message);
                 });
             });
         }
@@ -2065,17 +2024,12 @@
             var list = document.getElementById('adminUserList');
             var entries = Object.entries(users);
 
-            var header = '<div style="display:flex;gap:8px;margin-bottom:15px;">' +
-                '<input type="text" id="adminLookupUsername" placeholder="Enter username to look up" style="flex:1;padding:8px;border:1px solid #ddd;border-radius:6px;">' +
-                '<button class="btn btn-primary" onclick="adminLookupUser()" style="white-space:nowrap;">Look Up</button>' +
-                '</div>';
-
             if (entries.length === 0) {
-                list.innerHTML = header + '<div style="text-align:center;color:#999;padding:30px;">No accounts found. Use "Look Up" to find a user by username.</div>';
+                list.innerHTML = '<div style="text-align:center;color:#999;padding:30px;">No accounts found.</div>';
                 return;
             }
 
-            list.innerHTML = header + entries.map(function(entry) {
+            list.innerHTML = entries.map(function(entry) {
                 var key = entry[0];
                 var u = entry[1];
                 var created = u.createdAt ? new Date(u.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : 'Unknown';
@@ -2089,26 +2043,6 @@
             }).join('');
         }
 
-        // Look up a specific user by username from admin panel
-        function adminLookupUser() {
-            var username = document.getElementById('adminLookupUsername').value.trim();
-            if (!username) {
-                alert('Please enter a username to look up.');
-                return;
-            }
-
-            database.ref('_app_users/' + username).once('value').then(function(snapshot) {
-                if (!snapshot.exists()) {
-                    alert('User "' + username + '" not found.');
-                    return;
-                }
-                addToUserRegistry(username);
-                loadAdminUserList();
-            }).catch(function(err) {
-                alert('Error looking up user: ' + err.message);
-            });
-        }
-
         // Delete a user account from admin panel
         function deleteUserAccount(username) {
             if (!confirm('Are you sure you want to delete the account "' + username + '"? This cannot be undone.')) return;
@@ -2120,8 +2054,10 @@
                 if (currentUser && currentUser.username === username) {
                     localStorage.removeItem('currentUser');
                 }
-                removeFromUserRegistry(username);
-                loadAdminUserList();
+                // Refresh the list
+                database.ref('_app_users').once('value').then(function(snapshot) {
+                    renderAdminUserList(snapshot.val() || {});
+                });
             }).catch(function(err) {
                 alert('Error deleting account: ' + err.message);
             });
