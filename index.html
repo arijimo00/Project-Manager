@@ -1984,7 +1984,7 @@
         // Authenticate admin and load user list
         function authenticateAdmin() {
             var password = document.getElementById('adminPassword').value;
-            if (password !== 'SafetyPassKey') {
+            if (password !== 'Xk9#mQ2$vL7!') {
                 alert('Incorrect admin password.');
                 return;
             }
@@ -2048,6 +2048,8 @@
             if (!confirm('Are you sure you want to delete the account "' + username + '"? This cannot be undone.')) return;
 
             database.ref('_app_users/' + username).remove().then(function() {
+                // Also remove user data
+                database.ref('users/' + username).remove().catch(function() {});
                 // If the deleted user is the currently logged-in user, clear session
                 if (currentUser && currentUser.username === username) {
                     localStorage.removeItem('currentUser');
