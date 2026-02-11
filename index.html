@@ -2953,7 +2953,7 @@
                 let barsHTML = '';
                 proj.bars.forEach(bar => {
                     const startOffset = ((bar.start - minDate) / (1000 * 60 * 60 * 24)) * dayWidth;
-                    const barWidth = Math.max(4, ((bar.end - bar.start) / (1000 * 60 * 60 * 24)) * dayWidth);
+                    const barWidth = Math.max(dayWidth, (((bar.end - bar.start) / (1000 * 60 * 60 * 24)) + 1) * dayWidth);
                     const statusClass = 'status-' + bar.status;
 
                     const startStr = bar.start.toLocaleDateString();
