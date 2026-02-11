@@ -337,7 +337,7 @@
 
         .phase-row {
             display: grid;
-            grid-template-columns: auto 1fr 1fr 40px;
+            grid-template-columns: auto 1fr 1fr 1fr 40px;
             gap: 15px;
             align-items: end;
             padding: 15px;
@@ -555,9 +555,8 @@
 
         .gantt-timeline-header {
             display: flex;
-            border-bottom: 2px solid #e0e0e0;
+            border-bottom: 1px solid #e0e0e0;
             margin-left: 200px;
-            margin-bottom: 5px;
         }
 
         .gantt-month-label {
@@ -569,6 +568,42 @@
             border-left: 1px solid #e0e0e0;
             text-align: center;
             box-sizing: border-box;
+        }
+
+        .gantt-days-header {
+            display: flex;
+            margin-left: 200px;
+            border-bottom: 2px solid #e0e0e0;
+            margin-bottom: 5px;
+        }
+
+        .gantt-day-cell {
+            text-align: center;
+            font-size: 10px;
+            color: #666;
+            box-sizing: border-box;
+            padding: 2px 0;
+            line-height: 1.3;
+            border-left: 1px solid #f0f0f0;
+        }
+
+        .gantt-day-cell.weekend {
+            background: rgba(0,0,0,0.03);
+            color: #bbb;
+        }
+
+        .gantt-day-cell.week-start {
+            border-left: 2px solid #667eea;
+        }
+
+        .gantt-day-cell .day-letter {
+            font-weight: 600;
+            font-size: 9px;
+            text-transform: uppercase;
+        }
+
+        .gantt-day-cell .day-num {
+            font-size: 10px;
         }
 
         .gantt-row {
@@ -651,14 +686,7 @@
         .gantt-bar.status-on-pause { background: linear-gradient(135deg, #ef5350, #c2185b); }
 
         .gantt-bar-phase {
-            opacity: 0.75;
-            top: 10px;
-        }
-
-        .gantt-bar-phase:nth-child(even) {
-            top: 22px;
-            height: 18px;
-            font-size: 10px;
+            opacity: 0.9;
         }
 
         .gantt-today-line {
@@ -747,6 +775,92 @@
             max-width: 250px;
             line-height: 1.5;
             display: none;
+        }
+
+        /* Gantt Navigation */
+        .gantt-nav {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+
+        .gantt-nav-btn {
+            padding: 6px 14px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            background: white;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            color: #333;
+            transition: all 0.2s;
+        }
+
+        .gantt-nav-btn:hover {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .gantt-nav-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .gantt-nav-range {
+            font-size: 13px;
+            color: #666;
+            margin-left: 10px;
+        }
+
+        /* Gantt Status Picker */
+        .gantt-status-picker {
+            position: fixed;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.2);
+            z-index: 3001;
+            padding: 8px 0;
+            min-width: 180px;
+            display: none;
+        }
+
+        .gantt-status-picker .picker-title {
+            padding: 6px 14px;
+            font-size: 11px;
+            color: #999;
+            font-weight: 600;
+            text-transform: uppercase;
+            border-bottom: 1px solid #eee;
+            margin-bottom: 4px;
+        }
+
+        .gantt-status-option {
+            padding: 8px 14px;
+            cursor: pointer;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: background 0.15s;
+        }
+
+        .gantt-status-option:hover {
+            background: #f5f5ff;
+        }
+
+        .gantt-status-option.current {
+            background: #f0f0ff;
+            font-weight: 600;
+        }
+
+        .gantt-status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            flex-shrink: 0;
         }
 
         /* Buttons */
@@ -1431,7 +1545,7 @@
                                 <input type="number" id="bandwidth" placeholder="Days required" onchange="calculateTimeline()">
                             </div>
                             
-                            <div class="form-group">
+                            <div class="form-group" id="singleStatusGroup">
                                 <label>Status</label>
                                 <select id="status">
                                     <option value="received">Received</option>
@@ -1532,6 +1646,7 @@
                     <!-- Rendered dynamically by renderGanttChart() -->
                 </div>
                 <div class="gantt-tooltip" id="ganttTooltip"></div>
+                <div class="gantt-status-picker" id="ganttStatusPicker"></div>
             </div>
 
             <!-- Resources Tab -->
@@ -2509,10 +2624,14 @@
                 const card = document.createElement('div');
                 card.className = 'account-card';
                 
-                // Count active projects for this account
-                const activeProjects = Object.values(projects).filter(p => 
-                    p.account === id && p.status !== 'delivered'
-                ).length;
+                // Count active projects for this account (has any non-delivered phase)
+                const activeProjects = Object.values(projects).filter(p => {
+                    if (p.account !== id) return false;
+                    if (p.deliveryType === 'multi' && p.delivery && p.delivery.phases) {
+                        return p.delivery.phases.some(ph => (ph.status || p.status) !== 'delivered');
+                    }
+                    return p.status !== 'delivered';
+                }).length;
                 
                 card.innerHTML = `
                     <div class="account-header">
@@ -2621,23 +2740,25 @@
                 return;
             }
 
-            // Collect all date segments (bars) from projects
+            // Collect all date segments (bars) from projects — each phase is its own row
             const bars = [];
             projectList.forEach(([id, p]) => {
                 const accountName = (p.account && accounts[p.account]) ? accounts[p.account].name : 'Unknown';
                 const projectName = p.projectName || p.serialNumber || id;
 
                 if (p.deliveryType === 'multi' && p.delivery && p.delivery.phases) {
-                    p.delivery.phases.forEach(phase => {
+                    p.delivery.phases.forEach((phase, idx) => {
                         if (phase.startingDate && phase.deliveryDate) {
                             bars.push({
-                                id: id,
-                                name: projectName,
+                                id: id + '_phase' + phase.phase,
+                                projectId: id,
+                                phaseIndex: idx,
+                                name: projectName + ' - Phase ' + phase.phase,
                                 account: accountName,
-                                status: p.status || 'received',
+                                status: phase.status || p.status || 'received',
                                 start: new Date(phase.startingDate),
                                 end: new Date(phase.deliveryDate),
-                                label: 'Phase ' + phase.phase,
+                                label: '',
                                 isPhase: true
                             });
                         }
@@ -2651,13 +2772,14 @@
                         startDate = p.delivery.startingDate ? new Date(p.delivery.startingDate) : null;
                         endDate = p.delivery.deliveryDate ? new Date(p.delivery.deliveryDate) : null;
                     }
-                    // Fallback for legacy data
                     if (!startDate && p.createdAt) startDate = new Date(p.createdAt);
                     if (!endDate && p.deliveryTimeline) endDate = new Date(p.deliveryTimeline);
 
                     if (startDate && endDate && !isNaN(startDate) && !isNaN(endDate)) {
                         bars.push({
                             id: id,
+                            projectId: id,
+                            phaseIndex: -1,
                             name: projectName,
                             account: accountName,
                             status: p.status || 'received',
@@ -2675,28 +2797,28 @@
                 return;
             }
 
-            // Compute global date range with padding
+            // Date boundaries: earliest start to 1 week after latest delivery
             let minDate = new Date(Math.min(...bars.map(b => b.start.getTime())));
             let maxDate = new Date(Math.max(...bars.map(b => b.end.getTime())));
-            // Pad by 7 days on each side
-            minDate.setDate(minDate.getDate() - 7);
             maxDate.setDate(maxDate.getDate() + 7);
 
             const totalDays = Math.ceil((maxDate - minDate) / (1000 * 60 * 60 * 24));
-            const dayWidth = Math.max(4, Math.min(20, 800 / totalDays));
+            // Size days so 3 weeks (21 days) fills the visible area
+            const visibleWidth = Math.max(600, (container.clientWidth || 800) - 220);
+            const dayWidth = Math.max(4, visibleWidth / 21);
             const chartWidth = totalDays * dayWidth;
 
-            // Group bars by project id (to show multi-phase on same row)
+            // Each bar gets its own row (phases are separate rows)
             const projectRows = {};
             bars.forEach(bar => {
                 if (!projectRows[bar.id]) {
-                    projectRows[bar.id] = { name: bar.name, account: bar.account, bars: [] };
+                    projectRows[bar.id] = { name: bar.name, account: bar.account, bars: [bar] };
+                } else {
+                    projectRows[bar.id].bars.push(bar);
                 }
-                projectRows[bar.id].bars.push(bar);
             });
 
             // Build month labels
-            let monthLabelsHTML = '';
             const tempDate = new Date(minDate);
             tempDate.setDate(1);
             if (tempDate < minDate) tempDate.setMonth(tempDate.getMonth() + 1);
@@ -2720,16 +2842,16 @@
 
                 tempDate.setMonth(tempDate.getMonth() + 1);
             }
-            monthLabelsHTML = months.map(m =>
+            const monthLabelsHTML = months.map(m =>
                 `<div class="gantt-month-label" style="width:${m.width}px;min-width:${m.width}px;">${m.label}</div>`
             ).join('');
 
-            // Build grid lines (one per month boundary)
-            let gridLinesHTML = months.map(m =>
-                `<div class="gantt-grid-line" style="left:${m.left}px;"></div>`
-            ).join('');
+            // Build day-level header (S M T W T F S) and grid lines at week boundaries (Sunday)
+            const dayLetters = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+            let dayHeaderHTML = '';
+            let gridLinesHTML = '';
 
-            // Build day-off shading (weekends, holidays, leaves)
+            // Build day-off shading
             const holidaySet = getHolidaySet();
             let dayOffHTML = '';
             let dayOffHeaderHTML = '';
@@ -2738,19 +2860,30 @@
                 const dayOffset = ((iterDate - minDate) / (1000 * 60 * 60 * 24)) * dayWidth;
                 const dateStr = toDateStr(iterDate);
                 const dayOfWeek = iterDate.getDay();
+                const dayNum = iterDate.getDate();
+                const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+                const isWeekStart = dayOfWeek === 0; // Sunday = week start
 
-                if (dayOfWeek === 0 || dayOfWeek === 6) {
+                // Day header cell
+                dayHeaderHTML += `<div class="gantt-day-cell${isWeekend ? ' weekend' : ''}${isWeekStart ? ' week-start' : ''}" style="width:${dayWidth}px;min-width:${dayWidth}px;">` +
+                    `<div class="day-letter">${dayLetters[dayOfWeek]}</div>` +
+                    `<div class="day-num">${dayNum}</div></div>`;
+
+                // Grid line at each Sunday (week boundary)
+                if (isWeekStart) {
+                    gridLinesHTML += `<div class="gantt-grid-line" style="left:${dayOffset}px;border-left:2px solid rgba(102,126,234,0.3);"></div>`;
+                }
+
+                if (isWeekend) {
                     dayOffHTML += `<div class="gantt-dayoff gantt-dayoff-weekend" style="left:${dayOffset}px;width:${dayWidth}px;"></div>`;
                 } else if (holidaySet.has(dateStr)) {
                     dayOffHTML += `<div class="gantt-dayoff gantt-dayoff-holiday" style="left:${dayOffset}px;width:${dayWidth}px;"></div>`;
-                    // Show flag on header for holidays (only if wide enough to see)
                     if (dayWidth >= 6) {
                         const hName = Object.values(holidays).find(h => h.date === dateStr);
                         dayOffHeaderHTML += `<div class="gantt-dayoff-flag" style="left:${dayOffset + dayWidth / 2}px;" title="${hName ? hName.name : 'Holiday'}">H</div>`;
                     }
                 }
 
-                // Check for leaves on this day (any resource)
                 const leavesOnDay = Object.values(leaves).filter(lv => dateStr >= lv.startDate && dateStr <= lv.endDate);
                 if (leavesOnDay.length > 0 && dayOfWeek !== 0 && dayOfWeek !== 6 && !holidaySet.has(dateStr)) {
                     dayOffHTML += `<div class="gantt-dayoff gantt-dayoff-leave" style="left:${dayOffset}px;width:${dayWidth}px;"></div>`;
@@ -2767,37 +2900,38 @@
                 todayLineHTML = `<div class="gantt-today-line" style="left:${todayOffset}px;"><div class="gantt-today-label">Today</div></div>`;
             }
 
-            // Build rows
+            // Build rows — each bar/phase is clickable to change status
             let rowsHTML = '';
             Object.values(projectRows).forEach(proj => {
                 let barsHTML = '';
                 proj.bars.forEach(bar => {
                     const startOffset = ((bar.start - minDate) / (1000 * 60 * 60 * 24)) * dayWidth;
                     const barWidth = Math.max(4, ((bar.end - bar.start) / (1000 * 60 * 60 * 24)) * dayWidth);
-                    const phaseClass = bar.isPhase ? ' gantt-bar-phase' : '';
-                    const barLabel = bar.isPhase ? bar.label : '';
                     const statusClass = 'status-' + bar.status;
 
                     const startStr = bar.start.toLocaleDateString();
                     const endStr = bar.end.toLocaleDateString();
                     const totalCalDays = Math.ceil((bar.end - bar.start) / (1000 * 60 * 60 * 24));
-                    // Count working days for tooltip
                     let workDays = 0;
                     const countDate = new Date(bar.start);
                     while (countDate <= bar.end) {
                         if (!isNonWorkingDay(countDate, holidaySet, [])) workDays++;
                         countDate.setDate(countDate.getDate() + 1);
                     }
-                    const tooltipData = `${bar.name}${bar.isPhase ? ' - ' + bar.label : ''}|${startStr} - ${endStr}|${workDays} working days (${totalCalDays} cal) | ${bar.status.replace('-', ' ')}`;
+                    const tooltipData = `${bar.name}|${startStr} - ${endStr}|${workDays} working days (${totalCalDays} cal) | ${bar.status.replace(/-/g, ' ')}|Click to change status`;
 
-                    barsHTML += `<div class="gantt-bar ${statusClass}${phaseClass}" style="left:${startOffset}px;width:${barWidth}px;" onmouseenter="showGanttTooltip(event, '${tooltipData.replace(/'/g, "\\'")}')" onmouseleave="hideGanttTooltip()">${barLabel}</div>`;
+                    barsHTML += `<div class="gantt-bar ${statusClass}" style="left:${startOffset}px;width:${barWidth}px;" onclick="showGanttStatusPicker(event, '${bar.projectId}', ${bar.phaseIndex}, '${bar.status}')" onmouseenter="showGanttTooltip(event, '${tooltipData.replace(/'/g, "\\'")}')" onmouseleave="hideGanttTooltip()"></div>`;
                 });
+
+                // Status badge next to the label
+                const currentStatus = proj.bars[0] ? proj.bars[0].status : 'received';
+                const statusLabel = currentStatus.replace(/-/g, ' ');
 
                 rowsHTML += `
                     <div class="gantt-row">
                         <div class="gantt-row-label">
                             <div class="project-name" title="${proj.name}">${proj.name}</div>
-                            <div class="project-account">${proj.account}</div>
+                            <div class="project-account">${proj.account} &middot; <span style="text-transform:capitalize;">${statusLabel}</span></div>
                         </div>
                         <div class="gantt-row-bars" style="width:${chartWidth}px;min-width:${chartWidth}px;">
                             <div class="gantt-grid-lines">${gridLinesHTML}${dayOffHTML}${todayLineHTML}</div>
@@ -2807,7 +2941,7 @@
                 `;
             });
 
-            // Status legend + day-off legend
+            // Legends
             const statusColors = [
                 { label: 'Received', cls: 'status-received' },
                 { label: 'First Response', cls: 'status-first-response' },
@@ -2826,17 +2960,119 @@
                 <div class="gantt-legend-item"><div style="width:12px;height:12px;border-radius:3px;background:rgba(255,167,38,0.18);border:1px solid #ffcc80;"></div>Leave</div>
             `;
 
+            // Date range label for display
+            const minLabel = minDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+            const maxLabel = maxDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
             container.innerHTML = `
                 <div class="gantt-header">
                     <h3>Project Timeline</h3>
                     <div class="gantt-legend">${legendHTML}${dayOffLegendHTML}</div>
                 </div>
-                <div class="gantt-chart">
+                <div class="gantt-nav">
+                    <button class="gantt-nav-btn" onclick="ganttScrollLeft()">&larr; Earlier</button>
+                    <button class="gantt-nav-btn active" onclick="ganttScrollToday()">Today</button>
+                    <button class="gantt-nav-btn" onclick="ganttScrollRight()">Later &rarr;</button>
+                    <span class="gantt-nav-range">${minLabel} &ndash; ${maxLabel}</span>
+                </div>
+                <div class="gantt-chart" id="ganttChartScrollable" style="overflow-x:auto;">
                     <div class="gantt-dayoff-labels" style="width:${chartWidth}px;min-width:${chartWidth}px;">${dayOffHeaderHTML}</div>
                     <div class="gantt-timeline-header" style="width:${chartWidth}px;min-width:${chartWidth}px;">${monthLabelsHTML}</div>
+                    <div class="gantt-days-header" style="width:${chartWidth}px;min-width:${chartWidth}px;">${dayHeaderHTML}</div>
                     ${rowsHTML}
                 </div>
             `;
+
+            // Default scroll: 1 week before today
+            const scrollEl = document.getElementById('ganttChartScrollable');
+            if (scrollEl) {
+                const oneWeekAgo = new Date();
+                oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+                const scrollTarget = Math.max(0, ((oneWeekAgo - minDate) / (1000 * 60 * 60 * 24)) * dayWidth - 200);
+                scrollEl.scrollLeft = scrollTarget;
+            }
+        }
+
+        // Gantt navigation helpers
+        function ganttScrollLeft() {
+            const el = document.getElementById('ganttChartScrollable');
+            if (el) el.scrollBy({ left: -400, behavior: 'smooth' });
+        }
+
+        function ganttScrollRight() {
+            const el = document.getElementById('ganttChartScrollable');
+            if (el) el.scrollBy({ left: 400, behavior: 'smooth' });
+        }
+
+        function ganttScrollToday() {
+            const el = document.getElementById('ganttChartScrollable');
+            if (!el) return;
+            // Find the today-line element offset
+            const todayLine = el.querySelector('.gantt-today-line');
+            if (todayLine) {
+                const offset = parseInt(todayLine.style.left) || 0;
+                el.scrollTo({ left: Math.max(0, offset - 300), behavior: 'smooth' });
+            }
+        }
+
+        // Status picker on Gantt bar click
+        function showGanttStatusPicker(event, projectId, phaseIndex, currentStatus) {
+            event.stopPropagation();
+            hideGanttTooltip();
+
+            const picker = document.getElementById('ganttStatusPicker');
+            const statusOptions = [
+                { value: 'received', label: 'Received', color: '#1976d2' },
+                { value: 'first-response', label: 'First Response', color: '#7b1fa2' },
+                { value: 'in-pipeline', label: 'In Pipeline', color: '#f57c00' },
+                { value: 'in-progress', label: 'In Progress', color: '#388e3c' },
+                { value: 'delivered', label: 'Delivered', color: '#00796b' },
+                { value: 'on-pause', label: 'On Pause', color: '#c2185b' }
+            ];
+
+            picker.innerHTML = '<div class="picker-title">Change Status</div>' +
+                statusOptions.map(s =>
+                    `<div class="gantt-status-option${s.value === currentStatus ? ' current' : ''}" onclick="updateGanttStatus('${projectId}', ${phaseIndex}, '${s.value}')">` +
+                    `<div class="gantt-status-dot" style="background:${s.color};"></div>${s.label}</div>`
+                ).join('');
+
+            picker.style.display = 'block';
+            picker.style.left = Math.min(event.clientX, window.innerWidth - 200) + 'px';
+            picker.style.top = Math.min(event.clientY, window.innerHeight - 250) + 'px';
+
+            // Close on outside click
+            setTimeout(() => {
+                document.addEventListener('click', closeGanttStatusPicker, { once: true });
+            }, 10);
+        }
+
+        function closeGanttStatusPicker() {
+            document.getElementById('ganttStatusPicker').style.display = 'none';
+        }
+
+        // Update project/phase status from Gantt chart
+        function updateGanttStatus(projectId, phaseIndex, newStatus) {
+            closeGanttStatusPicker();
+
+            const project = projects[projectId];
+            if (!project) return;
+
+            if (phaseIndex >= 0 && project.deliveryType === 'multi' && project.delivery && project.delivery.phases && project.delivery.phases[phaseIndex]) {
+                // Update per-phase status
+                project.delivery.phases[phaseIndex].status = newStatus;
+            } else {
+                // Update blanket project status (single delivery)
+                project.status = newStatus;
+            }
+
+            // Save to Firebase
+            if (database) {
+                userRef('projects/' + projectId).set(project);
+            }
+
+            // Re-render
+            renderGanttChart();
+            updateAccountsDisplay();
         }
 
         // Gantt tooltip
@@ -3156,6 +3392,7 @@
                 document.querySelectorAll('#phasesContainer .phase-row').forEach((row, index) => {
                     phases.push({
                         phase: index + 1,
+                        status: row.querySelector('.phase-status').value,
                         startingDate: row.querySelector('.phase-start').value,
                         deliveryDate: row.querySelector('.phase-end').value
                     });
@@ -3208,13 +3445,14 @@
             document.getElementById('secondaryStakeholdersPlaceholder').textContent = 'Select Secondary Stakeholders';
             document.getElementById('projectResourcesPlaceholder').textContent = 'Select Resources';
 
-            // Reset delivery dates
+            // Reset delivery dates and status visibility
             document.getElementById('startingDate').value = '';
             document.getElementById('suggestedTimeline').textContent = '';
             document.getElementById('phasesContainer').innerHTML = '';
             phaseCount = 0;
             document.getElementById('singleDeliveryDates').style.display = 'grid';
             document.getElementById('multiDeliveryDates').style.display = 'none';
+            document.getElementById('singleStatusGroup').style.display = '';
         }
 
         // Update delivery fields based on type
@@ -3223,13 +3461,16 @@
             const type = document.getElementById('deliveryType').value;
             const singleSection = document.getElementById('singleDeliveryDates');
             const multiSection = document.getElementById('multiDeliveryDates');
+            const singleStatusGroup = document.getElementById('singleStatusGroup');
 
             if (type === 'single') {
                 singleSection.style.display = 'grid';
                 multiSection.style.display = 'none';
+                singleStatusGroup.style.display = '';
             } else {
                 singleSection.style.display = 'none';
                 multiSection.style.display = 'block';
+                singleStatusGroup.style.display = 'none';
                 // Add two phases by default if empty
                 if (phaseCount === 0) {
                     addPhase();
@@ -3247,6 +3488,17 @@
             row.id = 'phase-' + phaseCount;
             row.innerHTML = `
                 <div class="phase-label">Phase ${container.children.length + 1}</div>
+                <div class="form-group">
+                    <label>Status</label>
+                    <select class="phase-status" name="phaseStatus">
+                        <option value="received">Received</option>
+                        <option value="first-response">First Response</option>
+                        <option value="in-pipeline">In Pipeline</option>
+                        <option value="in-progress">In Progress</option>
+                        <option value="delivered">Delivered</option>
+                        <option value="on-pause">On Pause</option>
+                    </select>
+                </div>
                 <div class="form-group">
                     <label>Starting Date</label>
                     <input type="date" class="phase-start" name="phaseStart">
@@ -3285,20 +3537,20 @@
             if (checked) endInput.value = '';
         }
 
-        // Helper: get project delivery dates (returns {startDate, endDate} or array for multi-phase)
+        // Helper: get project delivery dates (returns {startDate, endDate, phase, status} array)
         function getProjectDates(p) {
             const dates = [];
             if (p.deliveryType === 'multi' && p.delivery && p.delivery.phases) {
                 p.delivery.phases.forEach(phase => {
                     if (phase.startingDate || phase.deliveryDate) {
-                        dates.push({ startDate: phase.startingDate || '', endDate: phase.deliveryDate || '', phase: phase.phase });
+                        dates.push({ startDate: phase.startingDate || '', endDate: phase.deliveryDate || '', phase: phase.phase, status: phase.status || p.status || 'received' });
                     }
                 });
             } else if (p.delivery) {
-                dates.push({ startDate: p.delivery.startingDate || '', endDate: p.delivery.deliveryDate || '', phase: null });
+                dates.push({ startDate: p.delivery.startingDate || '', endDate: p.delivery.deliveryDate || '', phase: null, status: p.status || 'received' });
             } else {
                 // Legacy format
-                dates.push({ startDate: p.createdAt ? p.createdAt.split('T')[0] : '', endDate: p.deliveryTimeline || '', phase: null });
+                dates.push({ startDate: p.createdAt ? p.createdAt.split('T')[0] : '', endDate: p.deliveryTimeline || '', phase: null, status: p.status || 'received' });
             }
             return dates;
         }
@@ -3325,7 +3577,7 @@
             const primaryNames = resolveStakeholderNames(p.primaryStakeholder, p.account);
             const secondaryNames = resolveStakeholderNames(p.secondaryStakeholders, p.account);
             const resourceNames = resolveResourceNames(p.projectResources);
-            const statusLabel = (p.status || '').replace(/-/g, ' ');
+            const statusLabel = (dateInfo.status || p.status || '').replace(/-/g, ' ');
             const phaseLabel = dateInfo.phase ? 'Phase ' + dateInfo.phase : (p.deliveryType === 'multi' ? 'Multi-phase' : 'Single');
 
             return [
@@ -3371,13 +3623,13 @@
             URL.revokeObjectURL(url);
         }
 
-        // Export Option 1: Active tracks (not delivered)
+        // Export Option 1: Active tracks (not delivered — checks per-phase status)
         function exportActiveTracks() {
             const rows = [];
             Object.entries(projects).forEach(([id, p]) => {
-                if (p.status === 'delivered') return;
                 const dates = getProjectDates(p);
                 dates.forEach(d => {
+                    if ((d.status || p.status) === 'delivered') return;
                     rows.push(buildProjectCSVRow(id, p, d));
                 });
             });
