@@ -2410,32 +2410,67 @@
 
         // Load data from Firebase (only called after connection is verified)
         function loadData() {
+            // Detach any existing listeners to prevent duplicates
+            try {
+                userRef('accounts').off();
+                userRef('resources').off();
+                userRef('projects').off();
+                userRef('holidays').off();
+                userRef('leaves').off();
+            } catch(e) {}
+
             userRef('accounts').on('value', (snapshot) => {
                 accounts = snapshot.val() || {};
                 updateAccountsDisplay();
                 populateDropdowns();
-            });
+            }, (err) => { console.error('Firebase accounts error:', err); });
 
             userRef('resources').on('value', (snapshot) => {
                 resources = snapshot.val() || {};
                 updateResourcesDisplay();
                 populateDropdowns();
-            });
+                // Refresh leaves display since it depends on resource names
+                if (Object.keys(leaves).length > 0) updateLeavesDisplay();
+            }, (err) => { console.error('Firebase resources error:', err); });
 
             userRef('projects').on('value', (snapshot) => {
                 projects = snapshot.val() || {};
                 updateProjectsDisplay();
-            });
+            }, (err) => { console.error('Firebase projects error:', err); });
 
             userRef('holidays').on('value', (snapshot) => {
                 holidays = snapshot.val() || {};
                 updateHolidaysDisplay();
-            });
+                renderGanttChart();
+            }, (err) => { console.error('Firebase holidays error:', err); });
 
             userRef('leaves').on('value', (snapshot) => {
                 leaves = snapshot.val() || {};
                 updateLeavesDisplay();
-            });
+                renderGanttChart();
+            }, (err) => { console.error('Firebase leaves error:', err); });
+
+            // Safety net: if holidays/leaves haven't loaded after 5 seconds, retry once
+            setTimeout(() => {
+                if (Object.keys(holidays).length === 0) {
+                    userRef('holidays').once('value').then(snap => {
+                        const val = snap.val();
+                        if (val && Object.keys(val).length > 0) {
+                            holidays = val;
+                            updateHolidaysDisplay();
+                        }
+                    }).catch(() => {});
+                }
+                if (Object.keys(leaves).length === 0) {
+                    userRef('leaves').once('value').then(snap => {
+                        const val = snap.val();
+                        if (val && Object.keys(val).length > 0) {
+                            leaves = val;
+                            updateLeavesDisplay();
+                        }
+                    }).catch(() => {});
+                }
+            }, 5000);
         }
 
         // Load demo data
@@ -4435,6 +4470,7 @@
         // Update holidays list display
         function updateHolidaysDisplay() {
             const list = document.getElementById('holidaysList');
+            if (!list) return;
             const entries = Object.entries(holidays);
 
             if (entries.length === 0) {
@@ -4504,6 +4540,7 @@
         // Update leaves list display
         function updateLeavesDisplay() {
             const list = document.getElementById('leavesList');
+            if (!list) return;
             const entries = Object.entries(leaves);
 
             if (entries.length === 0) {
